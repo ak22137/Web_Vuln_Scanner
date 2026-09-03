@@ -7,6 +7,7 @@ evidence is represented explicitly instead of being guessed from prose.
 import html
 import json
 import os
+import re
 import tempfile
 from rapid_scan.cvss_engine import calculate_base_score
 from rapid_scan.mitre_mapping import map_finding
@@ -25,8 +26,20 @@ def _atomic_text(path, content):
             os.unlink(temporary)
 
 
+def _public_value(value):
+    """Remove local filesystem details from user-facing report artifacts."""
+    if isinstance(value, dict):
+        return {key: _public_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_public_value(item) for item in value]
+    if isinstance(value, str):
+        value = re.sub(r"[A-Za-z]:\\[^\s\"']+", "[local path redacted]", value)
+        value = re.sub(r"(?<![A-Za-z0-9])/(?:tmp|var|home)/[^\s\"']+", "[local path redacted]", value)
+    return value
+
+
 def build_canonical_result(state):
-    tests = state.get("tests", [])
+    tests = _public_value(state.get("tests", []))
     completed = sum(str(item.get("status", "")).lower() == "completed" for item in tests)
     failed = sum(str(item.get("status", "")).lower() == "failed" for item in tests)
     skipped = sum(str(item.get("status", "")).lower() == "skipped" for item in tests)
@@ -55,6 +68,7 @@ def build_canonical_result(state):
                 "cvss": cvss or {"status": "Not Assessed"},
                 "evidence": finding.get("evidence", ""),
                 "remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
+                "references": finding.get("references", []),
                 "mitre": map_finding(finding),
             })
     return {
@@ -70,7 +84,8 @@ def build_canonical_result(state):
             "completion": state.get("scan_completion", "UNKNOWN"),
         },
         "coverage": {"total": len(tests), "completed": completed,
-                     "failed": failed, "skipped": skipped},
+                     "failed": failed, "skipped": skipped,
+                     "not_assessed": sum(f["status"] == "Not Assessed" for f in findings)},
         "tests": tests,
         "findings": findings,
         "risk_summary": {status.lower().replace(" ", "_"): sum(f["status"] == status for f in findings)
@@ -123,10 +138,25 @@ def write_canonical_reports(state, output_dir):
     json_path = os.path.join(output_dir, f"security_report_{scan_id}.json")
     html_path = os.path.join(output_dir, f"security_report_{scan_id}.html")
     pdf_path = os.path.join(output_dir, f"security_report_{scan_id}.pdf")
+    txt_path = os.path.join(output_dir, f"security_report_{scan_id}.txt")
     mitre_path = os.path.join(output_dir, f"mitre_mapping_{scan_id}.json")
     _atomic_text(json_path, json.dumps(result, indent=2, ensure_ascii=False))
     _atomic_text(mitre_path, json.dumps({"scan_id": scan_id, "mappings": result["mitre"]},
                                         indent=2, ensure_ascii=False))
+    text_lines = ["WebGuard Security Report", f"Target: {result['target']}",
+                  f"Execution Mode: {result['scan']['mode']}",
+                  f"Completion: {result['scan']['completion']}",
+                  f"Coverage: {json.dumps(result['coverage'])}", ""]
+    for finding in result["findings"]:
+        text_lines.extend([f"Finding Type: {finding['finding_type']}",
+                           f"Title: {finding['title']}",
+                           f"Status: {finding['status']}",
+                           f"Severity: {finding['severity']}",
+                           f"Confidence: {finding['confidence']}",
+                           f"CVSS: {json.dumps(finding['cvss'])}",
+                           f"Remediation: {finding['remediation']}",
+                           f"Evidence: {json.dumps(finding['evidence'], ensure_ascii=False)}", ""])
+    _atomic_text(txt_path, "\n".join(text_lines))
     report_rows = []
     for test in result["tests"]:
         test_findings = test.get("findings", []) or [{}]
@@ -158,4 +188,5 @@ def write_canonical_reports(state, output_dir):
     pdf_lines.extend(f"Finding: {finding['title']} [{finding['status']}]"
                      for finding in result["findings"])
     _write_simple_pdf(pdf_path, pdf_lines)
-    return {"json": json_path, "html": html_path, "pdf": pdf_path, "mitre": mitre_path}
+    return {"json": json_path, "html": html_path, "pdf": pdf_path,
+            "txt": txt_path, "mitre": mitre_path}

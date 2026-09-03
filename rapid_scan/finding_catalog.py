@@ -5,14 +5,17 @@ FINDING_CATALOG = {
         "category": "Security configuration weakness",
         "remediation": "Configure the missing response security headers at the web server or reverse proxy.",
         "cvss": {"status": "Not Applicable", "reason": "Configuration weakness; exploitability requires application context."},
+        "references": ["https://owasp.org/www-project-secure-headers/"],
     },
     "xss": {
         "category": "Cross-site scripting",
         "remediation": "Validate and context-encode untrusted input; add appropriate output encoding and CSP.",
+        "references": ["https://owasp.org/www-community/attacks/xss/"],
     },
     "lfi": {
         "category": "Local file inclusion",
         "remediation": "Use an allowlist of server-side resources and prevent user-controlled filesystem paths.",
+        "references": ["https://owasp.org/www-community/attacks/Path_Traversal"],
     },
     "unclassified": {
         "category": "RapidScan detection",

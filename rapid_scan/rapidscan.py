@@ -1565,6 +1565,7 @@ elif args_namespace.target:
                         test_record["findings"][-1]["remediation"] = finding_metadata["remediation"]
                         if "cvss" in finding_metadata:
                             test_record["findings"][-1]["cvss"] = finding_metadata["cvss"]
+                        test_record["findings"][-1]["references"] = finding_metadata.get("references", [])
                         if verification.get("cvss_vector"):
                             test_record["findings"][-1]["cvss_vector"] = verification["cvss_vector"]
         else:

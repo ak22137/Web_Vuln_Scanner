@@ -398,6 +398,7 @@ def perform_vulnerability_scan(url, scan_id=None):
             SCAN_RESULTS_DIR, f"rapidscan_result_{scan_id}.json")
         _write_json_atomic(state["rapidscan_result_file"], structured_payload)
     state["canonical_reports"] = write_canonical_reports(state, SCAN_RESULTS_DIR)
+    state["result_file"] = state["canonical_reports"]["txt"]
     save_state(state["status"], state.get("error"))
     st.success(f"Scan results have been saved to: {results_file}")
 
