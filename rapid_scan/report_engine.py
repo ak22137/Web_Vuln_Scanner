@@ -9,7 +9,8 @@ import json
 import os
 import re
 import tempfile
-from rapid_scan.cvss_engine import calculate_base_score
+import textwrap
+from rapid_scan.cvss_engine import calculate_base_score, vector_from_facts
 from rapid_scan.mitre_mapping import map_finding
 
 
@@ -40,6 +41,12 @@ def _public_value(value):
 
 def build_canonical_result(state):
     tests = _public_value(state.get("tests", []))
+    for test in tests:
+        if str(test.get("status", "")).lower() in {"failed", "skipped"}:
+            test.setdefault("assessment_reason", "; ".join(test.get("errors", [])) or
+                            "Test did not complete; findings were not assessed.")
+        elif not test.get("findings"):
+            test.setdefault("assessment_reason", "Test completed without a detected finding.")
     completed = sum(str(item.get("status", "")).lower() == "completed" for item in tests)
     failed = sum(str(item.get("status", "")).lower() == "failed" for item in tests)
     skipped = sum(str(item.get("status", "")).lower() == "skipped" for item in tests)
@@ -48,6 +55,8 @@ def build_canonical_result(state):
         for finding in test.get("findings", []):
             cvss = finding.get("cvss")
             vector = finding.get("cvss_vector")
+            if not vector and finding.get("verified"):
+                vector = vector_from_facts(finding.get("impact_facts"))
             if vector:
                 try:
                     cvss = {"vector": vector, "version": "3.1",
@@ -64,6 +73,7 @@ def build_canonical_result(state):
                 "verified": bool(finding.get("verified", False)),
                 "severity": finding.get("severity", "Unknown"),
                 "confidence": finding.get("confidence", "Low"),
+                "impact_facts": finding.get("impact_facts"),
                 "verification": finding.get("verification", {"status": "not_run"}),
                 "cvss": cvss or {"status": "Not Assessed"},
                 "evidence": finding.get("evidence", ""),
@@ -109,7 +119,7 @@ def _write_simple_pdf(path, lines):
     # Keep every report line; callers may provide many findings.  The
     # dependency-free renderer is intentionally plain, but it must not drop
     # findings from the exported artifact.
-    visible = [line[:110] for line in lines]
+    visible = [wrapped for line in lines for wrapped in textwrap.wrap(str(line), width=90) or [""]]
     stream = "BT /F1 9 Tf 40 760 Td " + " ".join(
         f"({_pdf_escape(line)}) Tj 0 -14 Td" for line in visible) + " ET"
     objects = [
@@ -166,7 +176,8 @@ def write_canonical_reports(state, output_dir):
                 f"<td>{html.escape(str(test.get('status', 'Unknown')))}</td>"
                 f"<td>{html.escape(str(finding.get('title', 'No finding')))}</td>"
                 f"<td>{html.escape(str(finding.get('finding_status', 'Not Assessed')))}</td>"
-                f"<td>{html.escape(str(finding.get('evidence', ''))[:500])}</td></tr>")
+                f"<td>{html.escape(str(finding.get('evidence', ''))[:500])}</td>"
+                f"<td>{html.escape(str(test.get('assessment_reason', '')))}</td></tr>")
     rows = "".join(report_rows)
     html_doc = ("<!doctype html><meta charset='utf-8'><title>WebGuard report</title>"
                 "<h1>WebGuard Security Report</h1>"
@@ -175,7 +186,7 @@ def write_canonical_reports(state, output_dir):
                 f"<p><b>Completion:</b> {html.escape(str(result['scan']['completion']))}</p>"
                 f"<p><b>Coverage:</b> {html.escape(json.dumps(result['coverage']))}</p>"
                 "<table border='1' cellpadding='6'><tr><th>Test</th><th>Status</th>"
-                f"<th>Finding</th><th>Finding status</th><th>Evidence</th></tr>{rows}</table>"
+                f"<th>Finding</th><th>Finding status</th><th>Evidence</th><th>Assessment</th></tr>{rows}</table>"
                 "<h2>Findings</h2>"
                 f"<pre>{html.escape(json.dumps(result['findings'], indent=2))}</pre>")
     _atomic_text(html_path, html_doc)

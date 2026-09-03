@@ -42,3 +42,20 @@ def calculate_base_score(vector):
     exploitability = 8.22 * av * ac * pr * ui
     score = min(1.08 * (impact + exploitability), 10) if scope_changed else min(impact + exploitability, 10)
     return _roundup(score)
+
+
+def vector_from_facts(facts):
+    """Build a CVSS base vector only from complete verified impact facts."""
+    if not isinstance(facts, dict):
+        return None
+    names = {"AV": "attack_vector", "AC": "attack_complexity", "PR": "privileges_required",
+             "UI": "user_interaction", "S": "scope", "C": "confidentiality",
+             "I": "integrity", "A": "availability"}
+    values = {key: facts.get(name) for key, name in names.items()}
+    if any(value not in {
+        "AV": {"N", "A", "L", "P"}, "AC": {"L", "H"},
+        "PR": {"N", "L", "H"}, "UI": {"N", "R"}, "S": {"U", "C"},
+        "C": {"N", "L", "H"}, "I": {"N", "L", "H"}, "A": {"N", "L", "H"}
+    }[key] for key, value in values.items()):
+        return None
+    return "CVSS:3.1/" + "/".join(f"{key}:{values[key]}" for key in names)

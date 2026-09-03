@@ -1522,16 +1522,18 @@ elif args_namespace.target:
                     if tool_status[tool][arg1].lower() in rs_tool_output_file.lower():
                         #print "\t"+ vul_info(tool_resp[tool][arg2]) + bcolors.BADFAIL +" "+ tool_resp[tool][arg1] + bcolors.ENDC
                         vul_remed_info(tool,tool_resp[tool][arg2],tool_resp[tool][arg3])
-                        rs_vul_list.append(tool_names[tool][arg1]+"*"+tool_names[tool][arg2])
+                        rs_vul_list.append({"test_id": tool_names[tool][arg1],
+                                            "name": tool_names[tool][arg2]})
                 else:
                     if any(i in rs_tool_output_file for i in tool_status[tool][arg6]):
                         m = 1 # This does nothing.
                     else:
                         #print "\t"+ vul_info(tool_resp[tool][arg2]) + bcolors.BADFAIL +" "+ tool_resp[tool][arg1] + bcolors.ENDC
                         vul_remed_info(tool,tool_resp[tool][arg2],tool_resp[tool][arg3])
-                        rs_vul_list.append(tool_names[tool][arg1]+"*"+tool_names[tool][arg2])
+                        rs_vul_list.append({"test_id": tool_names[tool][arg1],
+                                            "name": tool_names[tool][arg2]})
                 test_record["status"] = "completed"
-                if any(item.startswith(test_id + "*") for item in rs_vul_list):
+                if any(item.get("test_id") == test_id for item in rs_vul_list):
                     title = str(tool_resp[tool][0])
                     finding_type = finding_type_for_test(test_id)
                     finding_metadata = metadata_for(finding_type)
@@ -1600,10 +1602,10 @@ elif args_namespace.target:
     else:
         with open(vulreport, "a") as report:
             while(rs_vul < len(rs_vul_list)):
-                vuln_info = rs_vul_list[rs_vul].split('*')
-                report.write(vuln_info[arg2])
+                vuln_info = rs_vul_list[rs_vul]
+                report.write(vuln_info["name"])
                 report.write("\n------------------------\n\n")
-                temp_report_name = "/tmp/rapidscan_temp_"+vuln_info[arg1]
+                temp_report_name = "/tmp/rapidscan_temp_"+vuln_info["test_id"]
                 with open(temp_report_name, 'r') as temp_report:
                     data = temp_report.read()
                     report.write(data)

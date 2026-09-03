@@ -312,24 +312,28 @@ def perform_vulnerability_scan(url, scan_id=None):
                                      "High": 3, "Critical": 4}
                     for test in structured_payload.get("tests", []):
                         findings = test.get("findings", [])
-                        finding = findings[0] if findings else {}
-                        severity = finding.get("severity", "Unknown")
-                        scan_results.append({
-                            "Test Name": test.get("name", test.get("test_id", "Unknown")),
-                            "Status": test.get("status", "unknown").capitalize(),
-                            "Test Status": test.get("status", "unknown").capitalize(),
-                            "Finding Status": finding.get("finding_status", "Not Detected"),
-                            "Finding Type": finding.get("finding_type", "unclassified"),
-                            "Time Taken": f"{test.get('duration_ms', 0)}ms" if test.get("duration_ms") is not None else "Unknown",
-                            "Expected Time": "Unknown",
-                            "Threat Level": severity,
-                            "Definition": finding.get("evidence", ""),
-                            "Remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
-                            "Evidence": finding.get("evidence", ""),
-                            "Verified": finding.get("verified", False)
-                        })
-                        if severity_rank.get(severity, 0) > severity_rank.get(highest_threat_level, 0):
-                            highest_threat_level = severity
+                        rows = findings or [{"finding_status": "Not Assessed" if test.get("status") in {"failed", "skipped"}
+                                            else "Not Detected", "finding_type": "unclassified",
+                                            "verification": {"reason": "No finding was emitted by this test."}}]
+                        for finding in rows:
+                            severity = finding.get("severity", "Unknown")
+                            scan_results.append({
+                                "Test Name": test.get("name", test.get("test_id", "Unknown")),
+                                "Status": test.get("status", "unknown").capitalize(),
+                                "Test Status": test.get("status", "unknown").capitalize(),
+                                "Finding Status": finding.get("finding_status", "Not Assessed"),
+                                "Finding Type": finding.get("finding_type", "unclassified"),
+                                "Time Taken": f"{test.get('duration_ms', 0)}ms" if test.get("duration_ms") is not None else "Unknown",
+                                "Expected Time": "Unknown",
+                                "Threat Level": severity,
+                                "Definition": finding.get("evidence", ""),
+                                "Remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
+                                "Evidence": finding.get("evidence", ""),
+                                "Verification": finding.get("verification", {}),
+                                "Verified": finding.get("verified", False)
+                            })
+                            if severity_rank.get(severity, 0) > severity_rank.get(highest_threat_level, 0):
+                                highest_threat_level = severity
                 # Tests without a finding are not equivalent to a verified safe result.
                 for test in scan_results:
                     if not test["Threat Level"]:
