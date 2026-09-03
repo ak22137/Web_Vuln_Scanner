@@ -8,7 +8,6 @@ import time
 import random
 import threading
 import re
-import random
 import json
 from urllib.parse import urlsplit
 import concurrent.features
@@ -18,6 +17,18 @@ from rapid_scan.finding_catalog import metadata_for
 
 CURSOR_UP_ONE = '\x1b[1A' 
 ERASE_LINE = '\x1b[2K'
+TOOL_TIMEOUT_SECONDS = 300
+
+
+def _error(kind, message):
+    return {"kind": kind, "message": str(message)}
+
+
+def _evidence(target, test_id, output):
+    """Common evidence schema, even for legacy-tool adapter observations."""
+    return {"url": f"http://{target}", "method": None, "parameter": None,
+            "status_code": None, "request": None, "response": {"body_excerpt": output[-4000:]},
+            "payload": None, "source": "rapidscan_tool_adapter", "test_id": test_id}
 
 # Scan Time Elapser
 intervals = (
@@ -1445,7 +1456,8 @@ elif args_namespace.target:
             p = subprocess.Popen([precmd], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell=True)
             output, err = p.communicate()
             val = output + err
-        except:
+        except OSError as error:
+            print("\t"+bcolors.BG_ERR_TXT+f"RapidScan precheck failed: {error}"+bcolors.ENDC)
             print("\t"+bcolors.BG_ERR_TXT+"RapidScan was terminated abruptly..."+bcolors.ENDC)
             sys.exit(1)
         
@@ -1485,7 +1497,7 @@ elif args_namespace.target:
         print("["+tool_status[tool][arg3]+tool_status[tool][arg4]+"] Deploying "+str(tool+1)+"/"+str(tool_checks)+" | "+bcolors.OKBLUE+tool_names[tool][arg2]+bcolors.ENDC,)
         if tool_names[tool][arg4] == 0:
             test_record["status"] = "skipped"
-            test_record["errors"].append("Required scanner tool unavailable or skipped.")
+            test_record["errors"].append(_error("tool_unavailable", "Required scanner tool unavailable or skipped."))
             test_record["completed_at"] = time.time()
             test_record["duration_ms"] = int((test_record["completed_at"] - test_record["started_at"]) * 1000)
             print(bcolors.WARNING+"\nScanning Tool Unavailable. Skipping Test...\n"+bcolors.ENDC)
@@ -1501,11 +1513,20 @@ elif args_namespace.target:
         cmd = tool_cmd[tool][arg1]+target+tool_cmd[tool][arg2]+" > "+temp_file+" 2>&1"
 
         try:
-            subprocess.check_output(cmd, shell=True)
+            execution = subprocess.run(cmd, shell=True, timeout=TOOL_TIMEOUT_SECONDS)
+            runTest = execution.returncode == 0
+            if not runTest:
+                test_record["errors"].append(_error("tool_execution_failure",
+                                                     f"Tool exited with code {execution.returncode}."))
+        except subprocess.TimeoutExpired:
+            runTest = 0
+            test_record["errors"].append(_error("timeout", f"Tool exceeded {TOOL_TIMEOUT_SECONDS}s."))
         except KeyboardInterrupt:
             runTest = 0
-        except:
-            runTest = 1
+            test_record["errors"].append(_error("user_interruption", "Scan interrupted by user."))
+        except OSError as error:
+            runTest = 0
+            test_record["errors"].append(_error("tool_execution_failure", error))
 
         if runTest == 1:
                 spinner.stop()
@@ -1561,7 +1582,7 @@ elif args_namespace.target:
                         "finding_type": finding_type,
                         "header": exact_header,
                         "evidence_type": "http_response" if verification.get("evidence") else "tool_output",
-                        "evidence": verification.get("evidence") or {"raw_output": rs_tool_output_file[-4000:]},
+                        "evidence": verification.get("evidence") or _evidence(target, test_id, rs_tool_output_file),
                         "verification": verification
                         })
                         test_record["findings"][-1]["remediation"] = finding_metadata["remediation"]
@@ -1583,7 +1604,8 @@ elif args_namespace.target:
                 print("\n"+bcolors.WARNING + "\tTest Skipped. Performing Next. Press Ctrl+Z to Quit RapidScan.\n" + bcolors.ENDC)
                 rs_skipped_checks = rs_skipped_checks + 1
                 test_record["status"] = "failed"
-                test_record["errors"].append("Scanner execution was interrupted or failed.")
+                if not test_record["errors"]:
+                    test_record["errors"].append(_error("invalid_scanner_output", "Tool did not produce a usable result."))
 
         test_record["completed_at"] = time.time()
         test_record["duration_ms"] = int((test_record["completed_at"] - test_record["started_at"]) * 1000)
@@ -1592,52 +1614,12 @@ elif args_namespace.target:
     print(bcolors.BG_ENDL_TXT+"[ Preliminary Scan Phase Completed. ]"+bcolors.ENDC)
     print("\n")
 
-    #################### Report & Documentation Phase ###########################
-    date = subprocess.Popen(["date", "+%Y-%m-%d"],stdout=subprocess.PIPE).stdout.read()[:-1].decode("utf-8")
-    debuglog = "rs.dbg.%s.%s" % (target, date) 
-    vulreport = "rs.vul.%s.%s" % (target, date)
-    print(bcolors.BG_HEAD_TXT+"[ Report Generation Phase Initiated. ]"+bcolors.ENDC)
-    if len(rs_vul_list)==0:
-        print("\t"+bcolors.OKGREEN+"No Vulnerabilities Detected."+bcolors.ENDC)
-    else:
-        with open(vulreport, "a") as report:
-            while(rs_vul < len(rs_vul_list)):
-                vuln_info = rs_vul_list[rs_vul]
-                report.write(vuln_info["name"])
-                report.write("\n------------------------\n\n")
-                temp_report_name = "/tmp/rapidscan_temp_"+vuln_info["test_id"]
-                with open(temp_report_name, 'r') as temp_report:
-                    data = temp_report.read()
-                    report.write(data)
-                    report.write("\n\n")
-                temp_report.close()
-                rs_vul = rs_vul + 1
-
-            print("\tComplete Vulnerability Report for "+bcolors.OKBLUE+target+bcolors.ENDC+" named "+bcolors.OKGREEN+vulreport+bcolors.ENDC+" is available under the same directory RapidScan resides.")
-
-        report.close()
-    # Writing all scan files output into RS-Debug-ScanLog for debugging purposes.
-    for file_index, file_name in enumerate(tool_names):
-        with open(debuglog, "a") as report:
-            try:
-                with open("/tmp/rapidscan_temp_"+file_name[arg1], 'r') as temp_report:
-                        data = temp_report.read()
-                        report.write(file_name[arg2])
-                        report.write("\n------------------------\n\n")
-                        report.write(data)
-                        report.write("\n\n")
-                temp_report.close()
-            except:
-                break
-        report.close()
-
     print("\tTotal Number of Vulnerability Checks        : "+bcolors.BOLD+bcolors.OKGREEN+str(len(tool_names))+bcolors.ENDC)
     print("\tTotal Number of Vulnerability Checks Skipped: "+bcolors.BOLD+bcolors.WARNING+str(rs_skipped_checks)+bcolors.ENDC)
     print("\tTotal Number of Vulnerabilities Detected    : "+bcolors.BOLD+bcolors.BADFAIL+str(len(rs_vul_list))+bcolors.ENDC)
     print("\tTotal Time Elapsed for the Scan             : "+bcolors.BOLD+bcolors.OKBLUE+display_time(int(rs_total_elapsed))+bcolors.ENDC)
     print("\n")
-    print("\tFor Debugging Purposes, You can view the complete output generated by all the tools named "+bcolors.OKBLUE+debuglog+bcolors.ENDC+" under the same directory.")
-    print(bcolors.BG_ENDL_TXT+"[ Report Generation Phase Completed. ]"+bcolors.ENDC)
+    print(bcolors.BG_ENDL_TXT+"[ Structured Result Generation Completed. ]"+bcolors.ENDC)
 
     if args_namespace.json_output:
         structured_payload = {

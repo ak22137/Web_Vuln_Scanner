@@ -32,6 +32,15 @@ def _text_value(value):
         return json.dumps(value, ensure_ascii=False)
     return str(value or '')
 
+
+def _test_duration_ms(test):
+    if test.get("duration_ms") is not None:
+        return int(test["duration_ms"])
+    try:
+        return max(0, int((float(test["completed_at"]) - float(test["started_at"])) * 1000))
+    except (KeyError, TypeError, ValueError):
+        return None
+
 def _write_json_atomic(path, data):
     """Write scan state atomically so a Streamlit rerun never reads half JSON."""
     directory = os.path.dirname(path)
@@ -268,7 +277,6 @@ def perform_vulnerability_scan(url, scan_id=None):
     _persist_scan_state(state)
     raw_lines = []
     structured_payload = None
-    _persist_scan_state(state)
     table_placeholder = st.empty()
 
     def save_state(status=None, error=None):
@@ -286,7 +294,7 @@ def perform_vulnerability_scan(url, scan_id=None):
         if structured_payload:
             statuses = {str(test.get("status", "")).lower() for test in state["tests"]}
             state["scan_completion"] = (
-                "PARTIAL" if statuses.intersection({"failed", "skipped"}) else "COMPLETE"
+                "COMPLETE" if statuses and statuses == {"completed"} else "PARTIAL"
             )
         elif status == "Completed":
             state["scan_completion"] = "PARTIAL"
@@ -323,7 +331,8 @@ def perform_vulnerability_scan(url, scan_id=None):
                                 "Test Status": test.get("status", "unknown").capitalize(),
                                 "Finding Status": finding.get("finding_status", "Not Assessed"),
                                 "Finding Type": finding.get("finding_type", "unclassified"),
-                                "Time Taken": f"{test.get('duration_ms', 0)}ms" if test.get("duration_ms") is not None else "Unknown",
+                                "Time Taken": (f"{_test_duration_ms(test)}ms"
+                                               if _test_duration_ms(test) is not None else "Not recorded"),
                                 "Expected Time": "Unknown",
                                 "Threat Level": severity,
                                 "Definition": finding.get("evidence", ""),
@@ -341,7 +350,7 @@ def perform_vulnerability_scan(url, scan_id=None):
                     if test.get("Status") == "Running":
                         test["Status"] = "Completed" if process_succeeded else "Failed"
                         test["Test Status"] = test["Status"]
-                        test["Time Taken"] = "Unknown"
+                        test["Time Taken"] = "Not recorded"
                         test["Finding Status"] = "Not Detected" if process_succeeded else "Not Assessed"
                 if not highest_threat_level or highest_threat_level not in valid_threat_levels:
                     highest_threat_level = "Not Assessed"
@@ -404,6 +413,6 @@ def perform_vulnerability_scan(url, scan_id=None):
     state["canonical_reports"] = write_canonical_reports(state, SCAN_RESULTS_DIR)
     state["result_file"] = state["canonical_reports"]["txt"]
     save_state(state["status"], state.get("error"))
-    st.success(f"Scan results have been saved to: {results_file}")
+    st.success(f"Scan results have been saved to: {state['result_file']}")
 
     return scan_results, highest_threat_level

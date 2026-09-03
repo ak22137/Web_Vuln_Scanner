@@ -5,6 +5,7 @@ evidence is represented explicitly instead of being guessed from prose.
 """
 
 import html
+import hashlib
 import json
 import os
 import re
@@ -39,11 +40,38 @@ def _public_value(value):
     return value
 
 
+def _finding_id(test, finding):
+    """Stable identity across presentation ordering changes."""
+    identity = "|".join(str(part or "") for part in (
+        test.get("test_id"), finding.get("finding_type"),
+        finding.get("header"), (finding.get("evidence") or {}).get("url")
+        if isinstance(finding.get("evidence"), dict) else "",
+        (finding.get("evidence") or {}).get("parameter")
+        if isinstance(finding.get("evidence"), dict) else "",
+    ))
+    return f"{test.get('test_id', 'test')}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}"
+
+
+def _evidence_schema(evidence, verification):
+    evidence = evidence if isinstance(evidence, dict) else {"response": {"body_excerpt": str(evidence)}}
+    return {
+        "url": evidence.get("url"), "method": evidence.get("method"),
+        "parameter": evidence.get("parameter"), "status_code": evidence.get("status_code"),
+        "request": evidence.get("request"), "response": evidence.get("response"),
+        "payload": evidence.get("payload"), "source": evidence.get("source"),
+        "verification_result": verification,
+        **{key: value for key, value in evidence.items()
+           if key not in {"url", "method", "parameter", "status_code", "request", "response", "payload", "source"}},
+    }
+
+
 def build_canonical_result(state):
     tests = _public_value(state.get("tests", []))
     for test in tests:
         if str(test.get("status", "")).lower() in {"failed", "skipped"}:
-            test.setdefault("assessment_reason", "; ".join(test.get("errors", [])) or
+            error_text = "; ".join(error.get("message", str(error)) if isinstance(error, dict) else str(error)
+                                   for error in test.get("errors", []))
+            test.setdefault("assessment_reason", error_text or
                             "Test did not complete; findings were not assessed.")
         elif not test.get("findings"):
             test.setdefault("assessment_reason", "Test completed without a detected finding.")
@@ -64,7 +92,7 @@ def build_canonical_result(state):
                 except ValueError as error:
                     cvss = {"status": "Invalid Vector", "error": str(error)}
             findings.append({
-                "id": f"{test.get('test_id', 'test')}-{len(findings) + 1}",
+                "id": _finding_id(test, finding),
                 "title": finding.get("title", "Unclassified scanner finding"),
                 "finding_type": finding.get("finding_type", "unclassified"),
                 "header": finding.get("header"),
@@ -76,7 +104,7 @@ def build_canonical_result(state):
                 "impact_facts": finding.get("impact_facts"),
                 "verification": finding.get("verification", {"status": "not_run"}),
                 "cvss": cvss or {"status": "Not Assessed"},
-                "evidence": finding.get("evidence", ""),
+                "evidence": _evidence_schema(finding.get("evidence"), finding.get("verification", {})),
                 "remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
                 "references": finding.get("references", []),
                 "mitre": map_finding(finding),
@@ -115,20 +143,26 @@ def _pdf_escape(value):
 
 
 def _write_simple_pdf(path, lines):
-    # Dependency-free, text-only PDF for environments without a PDF package.
-    # Keep every report line; callers may provide many findings.  The
-    # dependency-free renderer is intentionally plain, but it must not drop
-    # findings from the exported artifact.
+    """Write a paginated, dependency-free text PDF without dropping evidence."""
     visible = [wrapped for line in lines for wrapped in textwrap.wrap(str(line), width=90) or [""]]
-    stream = "BT /F1 9 Tf 40 760 Td " + " ".join(
-        f"({_pdf_escape(line)}) Tj 0 -14 Td" for line in visible) + " ET"
-    objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        f"<< /Length {len(stream.encode('latin-1', 'replace'))} >>\nstream\n{stream}\nendstream",
-    ]
+    pages = [visible[index:index + 48] for index in range(0, len(visible), 48)] or [[""]]
+    objects = ["<< /Type /Catalog /Pages 2 0 R >>", None]
+    page_numbers = []
+    for page_lines in pages:
+        page_number = len(objects) + 1
+        content_number = page_number + 1
+        page_numbers.append(page_number)
+        stream = "BT /F1 9 Tf 40 760 Td " + " ".join(
+            f"({_pdf_escape(line)}) Tj 0 -14 Td" for line in page_lines) + " ET"
+        objects.extend([None, f"<< /Length {len(stream.encode('latin-1', 'replace'))} >>\nstream\n{stream}\nendstream"])
+    font_number = len(objects) + 1
+    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    objects[1] = (f"<< /Type /Pages /Kids [{' '.join(f'{number} 0 R' for number in page_numbers)}] "
+                  f"/Count {len(page_numbers)} >>")
+    for page_number in page_numbers:
+        objects[page_number - 1] = ("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+                                    f"/Resources << /Font << /F1 {font_number} 0 R >> >> "
+                                    f"/Contents {page_number + 1} 0 R >>")
     output = "%PDF-1.4\n"
     offsets = [0]
     for number, obj in enumerate(objects, 1):
