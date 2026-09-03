@@ -58,3 +58,14 @@ python -m pip install --no-cache-dir -r requirements.txt
 streamlit run main_v2.py
 
 ```
+
+Docker is optional. The full RapidScan tool runs through Docker when the
+Docker daemon is running and the `rapidscan` image exists. Build it once with:
+
+```bash
+docker build -t rapidscan -f rapid_scan/Dockerfile.txt rapid_scan
+```
+
+Without Docker, WebGuard automatically runs a local HTTP security-header
+check so the scan still produces persistent results and logs. Set
+`WEBGUARD_SCANNER_MODE=local` to force that fallback.

@@ -1,8 +1,0 @@
-2024-12-10 06:59:36,547 INFO     Start to process scenario file: vulnerability.txt
-2024-12-10 06:59:36,550 INFO     Step1: load threats report.
-2024-12-10 06:59:36,551 WARNING  Thret scenario file not exist: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Threats_2_MITRE_AI_Mapper/src/ScenarioBank/vulnerability.txt
-2024-12-10 07:00:00,837 INFO     Start to process scenario file: vulnerability_new.txt
-2024-12-10 07:00:00,838 INFO     Step1: load threats report.
-2024-12-10 07:00:00,841 INFO     - Finished.
-2024-12-10 07:00:00,841 INFO     Step2: parse the vulnerabilies.
-2024-12-10 07:00:02,780 INFO     - Get 0 matched CWE.

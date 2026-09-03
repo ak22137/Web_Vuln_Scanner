@@ -24,9 +24,10 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 from streamlit_option_menu import option_menu
 import json
 import os
-from groq import Groq
 import time
 import sys
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 from streamlit.components.v1 import html
 from agstyler import PINLEFT, draw_grid, JsCode
 
@@ -1294,15 +1295,9 @@ if selected =="MITRE Chatbot":
             <div class = "bluebar" ></div>
                 
         """, unsafe_allow_html=True)
-        # Initialize Groq client
-        client = Groq(
-            api_key="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",  # Ensure your API key is set in the environment
-        )
-        model = client.models.retrieve("llama-3.1-8b-instant")
-
         # Set the default model in session state
         if "groq_model" not in st.session_state:
-            st.session_state["groq_model"] = "llama-3.1-8b-instant"
+            st.session_state["groq_model"] = "qwen3:4b"
 
         # Initialize chat history
         if "messages" not in st.session_state:
@@ -1535,12 +1530,8 @@ if selected =="MITRE Chatbot":
             st.session_state.messages.append({"role": "user", "content": prompt})
 
             try:
-                chat_completion = client.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                        model=st.session_state["groq_model"],
-                        stream=False,
-                )
-                content = chat_completion.choices[0].message.content
+                chat_model = ChatOllama(model=st.session_state["groq_model"], temperature=0.3)
+                content = chat_model.invoke([HumanMessage(content=prompt)]).content
                 if content:
                     st.session_state.messages.append({"role": "assistant", "content": content})
                 # Add the assistant's response to the session state

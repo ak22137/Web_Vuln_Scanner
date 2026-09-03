@@ -432,7 +432,7 @@ class ExtractFeatures:
         new_dataset['time_domain_activation'], new_dataset['time_domain_expiration'] = self.get_domain_info(str(domain))
         
         # Check if IP is in domain
-        if re.match('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url) is not None:
+        if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url) is not None:
             new_dataset['domain_in_ip'] = int(True)
         else:
             new_dataset['domain_in_ip'] = int(False)

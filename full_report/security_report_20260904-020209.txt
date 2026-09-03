@@ -1,0 +1,52 @@
+==========================================
+Security Assessment Report
+Generated on: 2026-09-04 02:02:09
+==========================================
+
+1. DNS ENUMERATION RESULTS
+------------------------------------------
+1.1 Discovered Subdomains:
+
+1.2 Associated IP Addresses:
+
+2. IP Proxy ANALYSIS
+------------------------------------------
+
+3. FUZZING RESULTS
+------------------------------------------
+/ -> HTTP 200 (accessible)/robots.txt -> HTTP 200 (accessible)/sitemap.xml -> HTTP 200 (accessible)Directory discovery: https://ghostoverlay-ai.com/admin.phpDirectory discovery: https://ghostoverlay-ai.com/login.phpDirectory discovery: https://ghostoverlay-ai.com/test.phpDirectory discovery: https://ghostoverlay-ai.com/backup.php
+4. CVSS THREAT ASSESSMENT
+------------------------------------------
+
+5. DETAILED VULNERABILITY ANALYSIS
+------------------------------------------
+               Test Name   Status   Time Taken Expected Time Threat Level                                                                                             Definition                                                                      Remediation
+0  HTTP security headers  Running  In progress            1s       Medium  HTTP 200; missing security headers: content-security-policy, x-content-type-options, x-frame-options.  Configure the missing HTTP security headers at the web server or reverse proxy.
+6. MITRE ATT&CK FRAMEWORK ANALYSIS
+------------------------------------------
+{
+  "ScenarioName": "D:\\Projects\\Web_Vuln_Scanner\\Web_Vuln_Scanner\\Web-Vulnerability-Scanner\\Mitre-Att&ck\\src\\ScenarioBank\\vulnerability_details_20260903T203003769753Z.txt",
+  "ReportType": "ATT&CK",
+  "AttackBehaviors": [
+    "1. Exploit missing Content-Security-Policy (CSP) to inject malicious scripts via Cross-Site Scripting (XSS) attacks.",
+    "2. Leverage absence of X-Content-Type-Options to enable MIME-sniffing, allowing delivery of malicious content in unintended MIME types.",
+    "3. Use missing X-Frame-Options to enable clickjacking attacks by allowing the site to be embedded in iframes."
+  ],
+  "tactic: Exploitation": {
+    "technique: Cross-Site Scripting (XSS)": {
+      "match": true,
+      "detail": "explanation: The missing HTTP security headers (e.g., Content-Security-Policy, X-Content-Type-Options, X-Frame-Options) directly relate to Cross-Site Scripting (XSS) mitigation. A lack of these headers reduces the web application's ability to prevent XSS attacks, making it easier for attackers to inject malicious scripts. This aligns with the MITRE ATT&CK XSS technique, as the vulnerability described in the scenario creates an opportunity for XSS exploitation."
+    }
+  },
+  "tactic: Initial Access": {
+    "technique: Exploit Public-Facing Application (T1562.001)": {
+      "match": true,
+      "detail": "explanation: The MITRE ATT&CK technique T1562.001 (Exploit Public-Facing Application) involves leveraging vulnerabilities in publicly accessible applications. The scenario's missing security headers (e.g., Content-Security-Policy, X-Content-Type-Options, X-Frame-Options) are a specific type of application vulnerability that an attacker could exploit to gain unauthorized access or execute malicious code, aligning with this technique."
+    },
+    "technique: Clickjacking (T1564.001)": {
+      "match": true,
+      "detail": "explanation: The missing x-frame-options header directly relates to the Clickjacking (T1564.001) technique, as it allows an attacker to embed the site in a frame, enabling clickjacking attacks."
+    }
+  },
+  "Time": "2026_09_04_02_02_09"
+}

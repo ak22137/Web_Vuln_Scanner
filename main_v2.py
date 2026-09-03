@@ -25,24 +25,26 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 from streamlit_option_menu import option_menu
 import json
 import os
-from groq import Groq
 import time
 import sys
 from streamlit.components.v1 import html
 from agstyler import PINLEFT, draw_grid, JsCode
 import re
-import random
 import urllib.parse
 
 
 from streamlit.components.v1 import html
 
+BASE_DIR = os.path.dirname(__file__)
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Mitre-Att&ck/src'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'rapid_scan'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'fuzzer-sih'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'proxycheck'))
 
-from rapid_scan.streamlit_json_cli import perform_vulnerability_scan
+from rapid_scan.streamlit_json_cli import (perform_vulnerability_scan, load_latest_scan_state,
+                                            create_scan_state, update_scan_stage, load_scan_history)
 # from injectx_streamlit_run import run_injectx_scan
 from threats2MitreRun import processThreatsScenario
 from proxycheck import get_ip_details
@@ -68,36 +70,6 @@ def get_svg_content(svg_name):
             return file.read()
     except FileNotFoundError:
         return ""
-with col3:
-    redirect_url = "https://github.com/iamaastharawat/CustomRules-VidhyaDhaar.git"
-
-    # Encode the image to base64
-    extension_button_new_base64 = get_svg_content("button-new")
-
-    # Create a button with an image background
-    st.markdown(f"""
-        <style>
-        .button {{
-            background-color: #3c3c3c;
-            height: 45px;  /* Adjust height */
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            color: white;
-            padding-left: 10px;
-            padding-right: 10px;
-            font-weight: semibold;
-            display: inline-block;
-        }}
-        .button:hover {{
-            background-color: #4c4c4c;
-        }}
-        </style>
-        <a href="{redirect_url}" target="_blank">
-            <button class="button">{extension_button_new_base64} Try our Early Code Tester</button>
-        </a>
-    """, unsafe_allow_html=True)
-
 def initialize_dnsdumpster():
     try:
         api_key = "dbdbdd5b1a6707cea92ae17e01764588ffc4ca69bf3e9050f2384b02021f5cca"
@@ -123,7 +95,7 @@ def query_dnsdumpster(domain):
         )
         return response.json() if response.status_code == 200 else None
     except Exception as e:
-        st.error(f"DNSDumpster API error: {str(e)}")
+        st.info(f"DNSDumpster unavailable; continuing without DNS enrichment: {str(e)}")
         return None
     
 
@@ -157,13 +129,13 @@ def analyze_dns_data(dns_data):
     return findings
 
 
-def table_vulnerability():
+def table_vulnerability(results=None):
     try:
         # st.title("Security Scan Results")
 
 
         # Convert to DataFrame
-        df = pd.DataFrame(scan_results)
+        df = pd.DataFrame(results or [])
 
         if not df.empty:
 
@@ -738,7 +710,7 @@ def get_model():
     Replace this with your actual model loading logic.
     """
     try:
-        with open('phishing_url_detector.pkl', 'rb') as pickle_model:
+        with open(os.path.join(BASE_DIR, 'phishing_url_detector.pkl'), 'rb') as pickle_model:
             model = pickle.load(pickle_model)
         st.success("Model loaded successfully for parameter fuzzing...")
     except FileNotFoundError:
@@ -897,6 +869,37 @@ with st.form(key='url_form', clear_on_submit=True):
     # Submit button inside the form
     submit_button = st.form_submit_button("  ")
 
+# Scan state is persisted by the scanner because Streamlit reruns the script
+# after navigation/interactions. This keeps the latest rows available on the
+# next run instead of relying on local variables from the previous run.
+latest_scan = load_latest_scan_state()
+if latest_scan and not submit_button:
+    scan_status = latest_scan.get("status", "Unknown")
+    if scan_status == "Failed":
+        st.error(f"Latest scan failed: {latest_scan.get('url', 'Unknown')}")
+    else:
+        st.info(f"Latest scan: {latest_scan.get('url', 'Unknown')} — {scan_status}")
+    if latest_scan.get("error"):
+        st.warning(latest_scan["error"])
+    if latest_scan.get("stage"):
+        st.caption(f"Current stage: {latest_scan['stage']}")
+    if latest_scan.get("results"):
+        st.dataframe(pd.DataFrame(latest_scan["results"]), use_container_width=True, hide_index=True)
+    if latest_scan.get("raw_log_file") and os.path.exists(latest_scan["raw_log_file"]):
+        with st.expander("Scanner log"):
+            with open(latest_scan["raw_log_file"], encoding="utf-8", errors="replace") as log_file:
+                st.code(log_file.read()[-12000:])
+
+history = load_scan_history()
+if history:
+    with st.expander("Scan history"):
+        st.dataframe(pd.DataFrame([
+            {"URL": item.get("url"), "Status": item.get("status"),
+             "Stage": item.get("stage"), "Started": item.get("started_at"),
+             "Threat": item.get("highest_threat_level") or "-"}
+            for item in history
+        ]), use_container_width=True, hide_index=True)
+
 # if (input_url or submit_button) and not input_url.startswith(('http://', 'https://')):
 #     input_url = 'https://' + input_url
 
@@ -919,8 +922,29 @@ with st.form(key='url_form', clear_on_submit=True):
 
 if submit_button and input_url.strip():
     try:
+        input_url = input_url.strip()
+        if not input_url.startswith(('http://', 'https://')):
+            input_url = 'https://' + input_url
+        workflow_state = create_scan_state(input_url)
+        workflow_id = workflow_state["scan_id"]
         parsed_url = urllib.parse.urlparse(input_url)
         domain = parsed_url.netloc if parsed_url.netloc else input_url.split('/')[0]
+        findings = {'subdomains': [], 'ip_addresses': []}
+
+        # Use the bundled URL feature extractor for the phishing/URL model
+        # instead of leaving the later prediction step with an empty string.
+        try:
+            extracted_features = ExtractFeatures().url_to_features(input_url)
+            if isinstance(extracted_features, dict):
+                features_dataframe = pd.DataFrame.from_dict([extracted_features]).fillna(-1)
+                display_dataframe = features_dataframe.transpose().reset_index()
+                display_dataframe.columns = ['Parameter', 'Value']
+            else:
+                st.warning("URL features could not be extracted; continuing with the network scan.")
+        except Exception as exc:
+            st.info("Optional URL feature extraction was skipped; continuing with the network scan.")
+
+        update_scan_stage(workflow_id, "Capturing website screenshot")
         screen, dnstable, iptable = st.columns([0.5, 0.5, 0.5])
 
         chrome_options = Options()
@@ -932,15 +956,14 @@ if submit_button and input_url.strip():
             # Get the screenshot
             driver.get(input_url)
             screenshot = driver.get_screenshot_as_png()
-            driver.quit()
-                
         # Diwithsplay the screenshot
         with screen:
             img = Image.open(BytesIO(screenshot))
 
-            st.image(img, caption='Grid Screenshot', use_column_width=True)
+            st.image(img, caption='Grid Screenshot', use_container_width=True)
 
         with dnstable:
+            update_scan_stage(workflow_id, "DNS enumeration")
             st.markdown("<h3>DNS Enumeration</h3>", unsafe_allow_html=True)
             # findings = {
             #     'subdomains': [],
@@ -964,17 +987,26 @@ if submit_button and input_url.strip():
                     st.write(f"- {ip}")
         
         st.info("Checking IP addresses for proxy usage...")
+        update_scan_stage(workflow_id, "Proxy analysis")
         for ip in findings['ip_addresses']:
             st.write(f"- {ip}")
             st.write(ip)
             st.write(get_ip_details(ip))
 
         st.info("Fuzzing the URL...")
+        update_scan_stage(workflow_id, "Directory, virtual-host, and API discovery")
         # scan_output, vulnerabilities = run_injectx_scan(input_url)
         # st.write(scan_output)
         fuzz_results = fuzz(input_url)
-        delay = random.uniform(5, 15)
-        time.sleep(delay)
+        directory_results = brute_force_url(input_url)
+        virtual_host_results = fuzz_virtual_hosts(domain)
+        api_endpoint_results = test_api_endpoints(input_url)
+
+        # These discovery helpers were previously defined but never executed.
+        # Add their findings to both the UI and the generated security report.
+        fuzz_results.extend([f"Directory discovery: {url}" for url in directory_results])
+        fuzz_results.extend([f"Virtual host discovered: {host}" for host in virtual_host_results])
+        fuzz_results.extend([f"API endpoint discovered: {url}" for url in api_endpoint_results])
         print("\nFuzzing Completed! Results:")
         for result in fuzz_results:
             st.markdown(result)
@@ -992,7 +1024,7 @@ if submit_button and input_url.strip():
         #     st.error(f"Data type casting error: {e}")
         
         # Perform the scan
-        scan_results, highest_threat_level = perform_vulnerability_scan(input_url)
+        scan_results, highest_threat_level = perform_vulnerability_scan(input_url, scan_id=workflow_id)
         
         # # Validate if DataFrame is not empty and has the correct number of features
         # if not features_dataframe.empty and features_dataframe.shape[1] == 13:
@@ -1078,10 +1110,16 @@ if submit_button and input_url.strip():
             
             return results
         
-        from transformers import T5Tokenizer, T5ForConditionalGeneration
+        try:
+            from transformers import T5Tokenizer, T5ForConditionalGeneration
+            transformers_available = True
+        except ModuleNotFoundError:
+            transformers_available = False
+            st.warning("Optional threat-scoring model is unavailable (transformers is not installed). Showing scanner results without ML scoring.")
 
 # # Define report folder path
-        scenario_folder = "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank"
+        scenario_folder = os.path.join(BASE_DIR, 'Mitre-Att&ck', 'src', 'ScenarioBank')
+        os.makedirs(scenario_folder, exist_ok=True)
 
         # Get the file from report folder (assuming there's only one file)
         file_path = os.path.join(scenario_folder, os.listdir(scenario_folder)[0])
@@ -1121,21 +1159,22 @@ if submit_button and input_url.strip():
 #             st.write(result)
 #         else:
 #             st.write("No valid number found in output")
-        st.info("Calculating Threat Level...")
-        st.info("Loading Tokenizer...")
-        tokenizer = T5Tokenizer.from_pretrained("ethedeltae/flan-t5-small-sih")
-        st.info("Loading Model...")
-        model = T5ForConditionalGeneration.from_pretrained("ethedeltae/flan-t5-small-sih")
-
         # Read and parse the vulnerability file
         with open(file_path, 'r') as file:
             input_text = file.read()
 
-        # Parse entries
-        vulnerability_entries = parse_vulnerability_entries(input_text)
-
-        # Process entries and get individual threat scores
-        threat_results = process_vulnerability_entries(vulnerability_entries, tokenizer, model)
+        threat_results = []
+        if transformers_available:
+            try:
+                st.info("Calculating Threat Level...")
+                st.info("Loading Tokenizer...")
+                tokenizer = T5Tokenizer.from_pretrained("ethedeltae/flan-t5-small-sih")
+                st.info("Loading Model...")
+                model = T5ForConditionalGeneration.from_pretrained("ethedeltae/flan-t5-small-sih")
+                vulnerability_entries = parse_vulnerability_entries(input_text)
+                threat_results = process_vulnerability_entries(vulnerability_entries, tokenizer, model)
+            except Exception as exc:
+                st.warning(f"Threat-scoring model could not be loaded: {exc}. Showing scanner results without ML scoring.")
 
         # Display results
         st.write("Vulnerability Threat Levels")
@@ -1251,9 +1290,11 @@ if submit_button and input_url.strip():
 
         st.info("Running MITRE Att&ck...")
 # Define the report folder path
-        report_folder = "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank"
-        scenario_folder = "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank"
-        scan_results_folder = "/Users/apple/Desktop/Web-Vulnerability-Scanner/scan_results"
+        report_folder = os.path.join(BASE_DIR, 'Mitre-Att&ck', 'src', 'ScenarioBank')
+        scenario_folder = os.path.join(BASE_DIR, 'Mitre-Att&ck', 'src', 'ScenarioBank')
+        scan_results_folder = os.path.join(BASE_DIR, 'scan_results')
+        os.makedirs(report_folder, exist_ok=True)
+        os.makedirs(scan_results_folder, exist_ok=True)
         # Process any file found in the folder
         for filename in os.listdir(scenario_folder):
             file_path = os.path.join(scenario_folder, filename)
@@ -1354,10 +1395,10 @@ if submit_button and input_url.strip():
             ips=findings['ip_addresses'],
             scan_output=fuzz_results,
             ip_details=ip_details_dict,
-            cvss_level=result,
+            cvss_level=highest_threat_level,
             scan_results_df=df,
             mitre_report_path=report_file_1,
-            output_path="/Users/apple/Desktop/Web-Vulnerability-Scanner/full_report")
+            output_path=os.path.join(BASE_DIR, 'full_report'))
 
         with open(report_path, "r") as file:
            report_data_1 = file.read()
@@ -1368,11 +1409,14 @@ if submit_button and input_url.strip():
                 mime="text/plain",
             )
 
-        delete_folder_contents(scenario_folder)
-        delete_folder_contents(scan_results_folder)
+        # Keep scan snapshots, reports, and scenario input files available for
+        # the history view and for navigating away and back during a session.
+        update_scan_stage(workflow_id, "Report generated", status="Completed")
         st.success(f"Security report generated: {report_path}")
 
     except Exception as e:
+        if 'workflow_id' in locals():
+            update_scan_stage(workflow_id, "Workflow failed", status="Failed", error=str(e))
         st.error(f"Failed to process URL: {str(e)}")
         st.info("Please ensure Chrome is installed and properly configured.")
 elif submit_button:
@@ -1457,7 +1501,6 @@ elif submit_button:
             driver.get(input_url)
             screenshot = driver.get_screenshot_as_png()
             driver.quit()
-            
             # Convert screenshot to PIL Image
             img = Image.open(BytesIO(screenshot))
             
@@ -1565,16 +1608,17 @@ elif submit_button:
             }
             with table1:
                 st.write("")
-                display_grid_response = draw_grid(
-                    df=display_dataframe,
-                    formatter=display_formatter,
-                    fit_columns=True,
-                    use_checkbox=True,
-                    max_height=300,
-                )
+                if isinstance(display_dataframe, pd.DataFrame) and not display_dataframe.empty:
+                    display_grid_response = draw_grid(
+                        df=display_dataframe,
+                        formatter=display_formatter,
+                        fit_columns=True,
+                        use_checkbox=True,
+                        max_height=300,
+                    )
 
 
-            table_vulnerability()
+            table_vulnerability(scan_results)
 
                 
 

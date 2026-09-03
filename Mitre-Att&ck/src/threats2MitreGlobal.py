@@ -40,7 +40,7 @@ if os.path.exists(gLibDir): sys.path.insert(0, gLibDir)
 #-----------------------------------------------------------------------------
 # load the config file.
 import ConfigLoader
-CONFIG_FILE_NAME = '/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/config.txt'
+CONFIG_FILE_NAME = 'config.txt'
 gGonfigPath = os.path.join(dirpath, CONFIG_FILE_NAME)
 iConfigLoader = ConfigLoader.ConfigLoader(gGonfigPath, mode='r')
 if iConfigLoader is None:
@@ -73,12 +73,13 @@ def gDebugPrint(msg, prt=True, logType=None):
 #-----------------------------------------------------------------------------
 # Init the openAI parameters.
 API_KEY = CONFIG_DICT['API_KEY']
-os.environ["GROQ_API_KEY"] = API_KEY
 AI_MODEL = CONFIG_DICT['AI_MODEL']
 
 # Init the attack scenario storage folder
 gSceBank = os.path.join(dirpath, CONFIG_DICT['SCE_BANK']) if 'SCE_BANK' in CONFIG_DICT.keys() else dirpath 
 gRstFolder = os.path.join(dirpath, CONFIG_DICT['RST_FOLDER']) if 'RST_FOLDER' in CONFIG_DICT.keys() else dirpath
+os.makedirs(gSceBank, exist_ok=True)
+os.makedirs(gRstFolder, exist_ok=True)
 
 #-----------------------------------------------------------------------------
 # init the web interface parameter here

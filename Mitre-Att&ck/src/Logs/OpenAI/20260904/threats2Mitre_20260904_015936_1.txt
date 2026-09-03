@@ -1,0 +1,11 @@
+2026-09-04 02:00:47,638 INFO     Start to process scenario file: D:\Projects\Web_Vuln_Scanner\Web_Vuln_Scanner\Web-Vulnerability-Scanner\Mitre-Att&ck\src\ScenarioBank\vulnerability_details_20260903T203003769753Z.txt
+2026-09-04 02:00:47,638 INFO     Step1: load threats report.
+2026-09-04 02:00:47,639 INFO     - Finished.
+2026-09-04 02:00:47,639 INFO     Step2: summarize scenario and get attack behaviors list.
+2026-09-04 02:01:00,961 INFO      - Found 3 attack behaviors
+2026-09-04 02:01:00,962 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2026-09-04 02:01:49,458 INFO      - Found 2 mapped MITRE ATT&CK tactic
+2026-09-04 02:01:49,458 INFO     Step4: verifiy whether the technique can match the scenario
+2026-09-04 02:02:09,539 INFO     - Finished.
+2026-09-04 02:02:09,539 INFO     Step5: generate the report file
+2026-09-04 02:02:09,540 INFO     creatReport(): Report file created: D:\Projects\Web_Vuln_Scanner\Web_Vuln_Scanner\Web-Vulnerability-Scanner\Mitre-Att&ck\src\ScenarioBank\vulnerability_details_20260903T203003769753Z_Atk_2026_09_04_02_02_09.json

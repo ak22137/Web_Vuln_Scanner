@@ -62,6 +62,7 @@ def creatReport(dataDict):
     reportPath= os.path.join(gv.gRstFolder, reportName)
     jsonStr = json.dumps(dataDict, indent=4)
     try:
+        os.makedirs(gv.gRstFolder, exist_ok=True)
         with open(reportPath, "w") as outfile:
             outfile.write(jsonStr)
         gv.gDebugPrint("creatReport(): Report file created: %s" %str(reportPath),
@@ -79,9 +80,8 @@ class DataManager(threading.Thread):
     def __init__(self, parent) -> None:
         threading.Thread.__init__(self)
         self.parent = parent
-        os.environ["GROQ_API_KEY"] = gv.API_KEY
         # Init the data manager
-        self.attackMapper = llmMITREMapper(openAIkey=gv.API_KEY)
+        self.attackMapper = llmMITREMapper()
         self.startProFlg = False
         self.terminate = False 
 

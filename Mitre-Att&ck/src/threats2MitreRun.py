@@ -60,10 +60,9 @@ def creatReport(dataDict):
 class threats2MitreMapper(object):
     """ Main threats scenario description MITRE ATT&CK mapper program. """
 
-    def __init__(self, openAIkey=gv.API_KEY) -> None:
-        self.openAIkey = openAIkey
-        os.environ["GROQ_API_KEY"] = openAIkey
-        self.attackMapper = llmMITREMapper(openAIkey=self.openAIkey)
+    def __init__(self, model_name=None) -> None:
+        self.model_name = model_name
+        self.attackMapper = llmMITREMapper()
         gv.gDebugPrint("threats2MitreMapper init finished")
 
     #-----------------------------------------------------------------------------

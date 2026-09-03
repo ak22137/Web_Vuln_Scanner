@@ -1,0 +1,50 @@
+[
+  {
+    "scan_id": "20260903T203003769753Z",
+    "url": "https://ghostoverlay-ai.com",
+    "status": "Completed",
+    "stage": "Report generated",
+    "started_at": "2026-09-03T20:30:03.769743+00:00",
+    "updated_at": "2026-09-03T20:32:09.583797+00:00",
+    "highest_threat_level": "Medium",
+    "error": null,
+    "result_file": "vulnerability_scan_20260903T203003769753Z.txt",
+    "raw_log_file": "vulnerability_scan_20260903T203003769753Z.log"
+  },
+  {
+    "scan_id": "20260903T201237820304Z",
+    "url": "https://ghosttourlabs.com",
+    "status": "Completed",
+    "stage": "Vulnerability scan",
+    "started_at": "2026-09-03T20:12:37.820330+00:00",
+    "updated_at": "2026-09-03T20:12:38.322983+00:00",
+    "highest_threat_level": "Low",
+    "error": null,
+    "result_file": "vulnerability_scan_20260903T201237820304Z.txt",
+    "raw_log_file": "vulnerability_scan_20260903T201237820304Z.log"
+  },
+  {
+    "scan_id": "20260903T195757777230Z",
+    "url": "https://ghosttourlabs.com",
+    "status": "Completed",
+    "stage": "Vulnerability scan",
+    "started_at": "2026-09-03T19:57:57.777264+00:00",
+    "updated_at": "2026-09-03T19:57:58.380242+00:00",
+    "highest_threat_level": "Low",
+    "error": null,
+    "result_file": "vulnerability_scan_20260903T195757777230Z.txt",
+    "raw_log_file": "vulnerability_scan_20260903T195757777230Z.log"
+  },
+  {
+    "scan_id": "20260903T193957984916Z",
+    "url": "https://ghosttourlabs.com",
+    "status": "Failed",
+    "stage": "Vulnerability scan",
+    "started_at": "2026-09-03T19:39:57.984935+00:00",
+    "updated_at": "2026-09-03T19:39:58.239041+00:00",
+    "highest_threat_level": "Safe",
+    "error": "Docker daemon was unavailable during this older run.",
+    "result_file": "vulnerability_scan_20260903T193957984916Z.txt",
+    "raw_log_file": "vulnerability_scan_20260903T193957984916Z.log"
+  }
+]

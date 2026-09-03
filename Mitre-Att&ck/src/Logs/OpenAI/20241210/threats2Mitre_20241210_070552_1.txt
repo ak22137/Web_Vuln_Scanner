@@ -1,7 +1,0 @@
-2024-12-10 07:06:11,841 INFO     Start to process scenario file: maliciousMacroReport.txt
-2024-12-10 07:06:11,847 INFO     Step1: load threats report.
-2024-12-10 07:06:11,848 INFO     - Finished.
-2024-12-10 07:06:11,849 INFO     Step2: parse the vulnerabilies.
-2024-12-10 07:06:14,281 INFO     - Get 7 matched CWE.
-2024-12-10 07:06:14,281 INFO     Step3: generate the report file
-2024-12-10 07:06:14,281 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Threats_2_MITRE_AI_Mapper/src/ReportFolder/maliciousMacroReport_Cwe_2024_12_10_07_06_14.json

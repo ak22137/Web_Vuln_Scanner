@@ -2,28 +2,15 @@
 import os
 
 # load the langchain libs
-from langchain.llms import OpenAI
-from langchain.chains import LLMChain
-from langchain.chains.llm import LLMChain
-from langchain.chat_models import ChatOpenAI
-
-from langchain.prompts import PromptTemplate
-from langchain.prompts.chat import (
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.schema import BaseOutputParser
-from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 
 import threats2MitreGlobal as gv
-
-#-----------------------------------------------------------------------------
-class CommaSeparatedListOutputParser(BaseOutputParser):
-    """Parse the output of an LLM call to a comma-separated list."""
-    def parse(self, text: str):
-        """Parse the output of an LLM call."""
-        return text.strip().split("\n")
 
 
 #-----------------------------------------------------------------------------
@@ -31,10 +18,10 @@ class llmMITREMapper(object):
     """ A LLM-AI mapper program map the attack scenario attack flow path to the 
         MITRE ATT&CK Matrix to get the related tactic and technique.
     """
-    def __init__(self, openAIkey=None) -> None:
-        # init the openAI conersation 
-        if openAIkey: os.environ["GROQ_API_KEY"] = openAIkey
-        self.llm = ChatGroq(temperature=0.3, model_name="llama-3.1-8b-instant")
+    def __init__(self, model_name=None) -> None:
+        # init the conversation model
+        selected_model = model_name or os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+        self.llm = ChatOllama(temperature=0.3, model=selected_model)
         self.llmAnalyzerChain = None 
         self._initASDAnalyzer()
         self.llmActMapperChain = None 
@@ -52,9 +39,7 @@ class llmMITREMapper(object):
         human_template = "Attack Scenario: {text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
         chat_prompt = ChatPromptTemplate.from_messages([sysTemplate, human_message_prompt])
-        self.llmAnalyzerChain = LLMChain(llm=self.llm, 
-                            prompt=chat_prompt, 
-                            output_parser=CommaSeparatedListOutputParser())
+        self.llmAnalyzerChain = chat_prompt | self.llm | StrOutputParser()
 
     #-----------------------------------------------------------------------------
     def _initASDMapper(self, systemTemplate=gv.gSce2MitrePrompt):
@@ -62,9 +47,7 @@ class llmMITREMapper(object):
         human_template = "{text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
         chat_prompt = ChatPromptTemplate.from_messages([sysTemplate, human_message_prompt])
-        self.llmMaperChain = LLMChain(llm=self.llm, 
-                            prompt=chat_prompt, 
-                            output_parser=CommaSeparatedListOutputParser())
+        self.llmMaperChain = chat_prompt | self.llm | StrOutputParser()
 
     #-----------------------------------------------------------------------------
     def _initActionMapper(self, systemTemplate=gv.gBeh2MitrePrompt):
@@ -75,9 +58,7 @@ class llmMITREMapper(object):
         human_template = "{text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
         chat_prompt = ChatPromptTemplate.from_messages([sysTemplate, human_message_prompt])
-        self.llmActMapperChain = LLMChain(llm=self.llm, 
-                            prompt=chat_prompt, 
-                            output_parser=CommaSeparatedListOutputParser())
+        self.llmActMapperChain = chat_prompt | self.llm | StrOutputParser()
 
     #-----------------------------------------------------------------------------
     def setVerifier(self, scenarioStr, verifyTemplate=gv.gMitreVerifyPrompt):
@@ -91,9 +72,7 @@ class llmMITREMapper(object):
         human_template = "MITRE ATT&CK technique: {text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
         chat_prompt = ChatPromptTemplate.from_messages([sysTemplate, human_message_prompt])
-        self.llmTecVerifyChain = LLMChain(llm=self.llm, 
-                            prompt=chat_prompt, 
-                            output_parser=CommaSeparatedListOutputParser())
+        self.llmTecVerifyChain = chat_prompt | self.llm | StrOutputParser()
 
     #-----------------------------------------------------------------------------
     def getAttackInfo(self, scenarioStr):
@@ -105,9 +84,9 @@ class llmMITREMapper(object):
                 list(str): list of attack behaviors.
         """
         gv.gDebugPrint("getAttackInfo() > Start to summarize the attack flow path.")
-        answerList = self.llmAnalyzerChain.run(scenarioStr)
+        answerText = self.llmAnalyzerChain.invoke({"text": scenarioStr})
         actionList = []
-        for ansStr in answerList:
+        for ansStr in answerText.splitlines():
             #print(ansStr)
             ansStr = ansStr.strip()
             if ansStr == 'Attack behavior:' or ansStr == '' or ansStr=='\t':
@@ -123,9 +102,9 @@ class llmMITREMapper(object):
     #-----------------------------------------------------------------------------
     def testAttackTTP(self, scenarioStr):
         """ Get the MITRE ATT&CK TTP for a given scenario. """
-        answerList = self.llmMaperChain.run(scenarioStr)
-        print(answerList)
-        for ansStr in answerList:
+        answerText = self.llmMaperChain.invoke({"text": scenarioStr})
+        print(answerText)
+        for ansStr in answerText.splitlines():
             print(ansStr)
 
     #-----------------------------------------------------------------------------
@@ -163,10 +142,10 @@ class llmMITREMapper(object):
             Returns:
                 dict : { 'tactic': None, 'technique': [] }
         """
-        answerList = self.llmActMapperChain.run(behaviorStr)
+        answerText = self.llmActMapperChain.invoke({"text": behaviorStr})
         ttDict = { 'tactic': None, 'technique': [] }
         #print(answerList)
-        for ansStr in answerList:
+        for ansStr in answerText.splitlines():
             ansStr = ansStr.strip()
             if ansStr.startswith('tactic'): 
                 ttDict['tactic'] = ansStr
@@ -185,9 +164,9 @@ class llmMITREMapper(object):
         """
         if self.llmTecVerifyChain:
             rstDict = {'match': False , 'detail': None }
-            answerList = self.llmTecVerifyChain.run(technique)
+            answerText = self.llmTecVerifyChain.invoke({"text": technique})
             #print(answerList)
-            for ansStr in answerList:
+            for ansStr in answerText.splitlines():
                 ansStr = ansStr.strip()
                 if ansStr.lower().startswith('match' ):
                     rstDict['match'] = True if 'yes' in ansStr.lower() else False
@@ -201,7 +180,7 @@ class llmMITREMapper(object):
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 def testCase(mode):
-    mapper = llmMITREMapper(openAIkey=gv.API_KEY)
+    mapper = llmMITREMapper()
     # Add the test threats scenario description string.
     scenarioStr = """This scenario illustrates how the red team attacker, Alice, 
     constructs a malicious macro within a MS-Office Word document (CVE-2015-1641). 

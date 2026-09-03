@@ -49,10 +49,10 @@ class ConfigLoader(object):
         self.mode = mode
         self.logFlg = logFlg
         self.filterCharList = filterChars if not filterChars is None and len(filterChars) > 0 else FILTER_CHAR
+        self.configLines = []
         if self.mode == 'r' and not os.path.exists(filePath):
             if self.logFlg: print('> Error: can not find the config file %s' % str(filePath))
             return
-        self.configLines = []
         if 'r' in self.mode:
             try:
                 with open(filePath) as fp:

@@ -13,7 +13,7 @@ def main():
     logger = FuzzLoggerText(file_handle=open("fuzz_results.txt", "w"))
 
     # Target configuration: specify the hostname and the port
-    target = Target(connection=TCPSocketConnection("https://abhilekhborah.github.io/", 80))
+    # target = Target(connection=TCPSocketConnection("https://example.com/", 80))
 
     # Initialize a fuzzing session
     session = Session(target=target, fuzz_loggers=[logger])

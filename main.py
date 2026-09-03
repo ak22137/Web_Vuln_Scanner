@@ -25,9 +25,10 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 from streamlit_option_menu import option_menu
 import json
 import os
-from groq import Groq
 import time
 import sys
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 import os
 import re
 import shutil
@@ -35,10 +36,26 @@ import subprocess
 
 from streamlit.components.v1 import html
 
+BASE_DIR = os.path.dirname(__file__)
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Mitre-Att&ck/src'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'rapid_scan'))
-from rapid_scan.streamlit_json_cli import perform_vulnerability_scan
+from rapid_scan.streamlit_json_cli import perform_vulnerability_scan, load_latest_scan_state
+import threats2MitreGlobal as gv
 from threats2MitreRun import processThreatsScenario
+
+
+def get_latest_scenario_file():
+    scenario_dir = gv.gSceBank
+    if not os.path.isdir(scenario_dir):
+        return None
+    scenario_files = [
+        os.path.join(scenario_dir, file_name)
+        for file_name in os.listdir(scenario_dir)
+        if file_name.lower().endswith('.txt')
+    ]
+    if not scenario_files:
+        return None
+    return max(scenario_files, key=os.path.getmtime)
 
 def setup_chrome_driver():
     chrome_options = Options()
@@ -519,7 +536,8 @@ if selected == "Vulnerability Check": #button for rapid_scan
     # Caching the phishing URL detection model
     @st.cache_resource
     def get_model():
-        with open('/Users/apple/Desktop/Web-Vulnerability-Scanner/phishing_url_detector.pkl', 'rb') as pickle_model:
+        model_path = os.path.join(BASE_DIR, 'phishing_url_detector.pkl')
+        with open(model_path, 'rb') as pickle_model:
             phishing_url_detector = pickle.load(pickle_model)
         return phishing_url_detector
 
@@ -682,6 +700,10 @@ if selected == "Vulnerability Check": #button for rapid_scan
         # Submit button inside the form
         submit_button = st.form_submit_button("Run Scan")
 
+    # Streamlit reruns this script when the sidebar selection changes. Reload the
+    # durable scan snapshot so a completed or in-progress scan remains visible.
+    latest_scan = load_latest_scan_state()
+
     # if (input_url or submit_button) and not input_url.startswith(('http://', 'https://')):
     #     input_url = 'https://' + input_url
         
@@ -702,6 +724,19 @@ if selected == "Vulnerability Check": #button for rapid_scan
             st.info("Please ensure Chrome is installed and properly configured.")
     elif submit_button:
         st.warning("Please enter a valid URL.")
+    elif latest_scan:
+        scan_status = latest_scan.get("status", "Unknown")
+        status_message = f"Latest scan: {latest_scan.get('url', 'Unknown')} — {scan_status}"
+        if scan_status == "Running":
+            st.info(status_message)
+        elif scan_status == "Failed":
+            st.warning(status_message)
+        else:
+            st.success(status_message)
+        persisted_results = latest_scan.get("results", [])
+        if persisted_results:
+            st.table(pd.DataFrame(persisted_results))
+            st.caption(f"Highest threat level: {latest_scan.get('highest_threat_level', 'Safe')}")
 
     # Username and password brute-force
     usernames = ['user1', 'user2', 'admin']
@@ -730,7 +765,11 @@ if selected == "Vulnerability Check": #button for rapid_scan
 if selected == "MITRE Chatbot":
     # run_mitre(report)  --  att&ck and cwe report
     # run_mitre(report)  --  att&ck and cwe report
-    processThreatsScenario("vulnerability_new.txt")
+    scenario_file = get_latest_scenario_file()
+    if scenario_file:
+        processThreatsScenario(os.path.basename(scenario_file))
+    else:
+        st.warning("No scenario file found in the MITRE scenario bank.")
     # print("Process Threat Completed...")
     # st.empty()
     
@@ -993,7 +1032,8 @@ if selected == "MITRE Chatbot":
 
         # Find the report folder
         # report_folder = find_report_folder()
-        report_folder = "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder"
+        report_folder = gv.gRstFolder
+        os.makedirs(report_folder, exist_ok=True)
         def delete_folder_contents(folder_path):
             shutil.rmtree(folder_path)
             os.makedirs(folder_path)
@@ -1032,15 +1072,9 @@ if selected == "MITRE Chatbot":
             <div class = "bluebar" ></div>
                 
         """, unsafe_allow_html=True)
-        # Initialize Groq client
-        client = Groq(
-            api_key="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",  # Ensure your API key is set in the environment
-        )
-        model = client.models.retrieve("llama-3.1-8b-instant")
-
         # Set the default model in session state
         if "groq_model" not in st.session_state:
-            st.session_state["groq_model"] = "llama-3.1-8b-instant"
+            st.session_state["groq_model"] = "qwen3:4b"
 
         # Initialize chat history
         if "messages" not in st.session_state:
@@ -1262,7 +1296,7 @@ if selected == "MITRE Chatbot":
         # Create the chat form
         with st.form(key='chat_form', clear_on_submit=True):
             # Input for user prompt
-            prompt = st.text_area("", placeholder="Type your query here...")
+            prompt = st.text_area("Chat prompt", placeholder="Type your query here...", label_visibility="collapsed")
             
             # Submit button inside the form
             submit_button_1 = st.form_submit_button("Send")
@@ -1273,12 +1307,8 @@ if selected == "MITRE Chatbot":
             st.session_state.messages.append({"role": "user", "content": prompt})
 
             try:
-                chat_completion = client.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                        model=st.session_state["groq_model"],
-                        stream=False,
-                )
-                content = chat_completion.choices[0].message.content
+                chat_model = ChatOllama(model=st.session_state["groq_model"], temperature=0.3)
+                content = chat_model.invoke([HumanMessage(content=prompt)]).content
                 if content:
                     st.session_state.messages.append({"role": "assistant", "content": content})
                 # Add the assistant's response to the session state

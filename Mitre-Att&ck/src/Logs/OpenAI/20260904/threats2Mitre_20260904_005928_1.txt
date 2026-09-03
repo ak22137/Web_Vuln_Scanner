@@ -1,0 +1,33 @@
+2026-09-04 01:03:06,866 INFO     Start to process scenario file: vulnerability_details_20260904_002356.txt
+2026-09-04 01:03:06,867 INFO     Step1: load threats report.
+2026-09-04 01:03:06,868 INFO     - Finished.
+2026-09-04 01:03:06,868 INFO     Step2: summarize scenario and get attack behaviors list.
+2026-09-04 01:03:15,026 INFO     Start to process scenario file: vulnerability_details_20260904_002356.txt
+2026-09-04 01:03:15,026 INFO     Step1: load threats report.
+2026-09-04 01:03:15,027 INFO     - Finished.
+2026-09-04 01:03:15,027 INFO     Step2: summarize scenario and get attack behaviors list.
+2026-09-04 01:03:31,396 INFO      - Found 10 attack behaviors
+2026-09-04 01:03:31,397 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2026-09-04 01:03:34,332 INFO      - Found 7 attack behaviors
+2026-09-04 01:03:34,332 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2026-09-04 01:06:28,356 INFO      - Found 6 mapped MITRE ATT&CK tactic
+2026-09-04 01:06:28,356 INFO     Step4: verifiy whether the technique can match the scenario
+2026-09-04 01:07:31,729 INFO      - Found 8 mapped MITRE ATT&CK tactic
+2026-09-04 01:07:31,729 INFO     Step4: verifiy whether the technique can match the scenario
+2026-09-04 01:12:40,240 INFO     - Finished.
+2026-09-04 01:12:40,240 INFO     Step5: generate the report file
+2026-09-04 01:12:40,241 INFO     creatReport(): Report file created: D:\Projects\Web_Vuln_Scanner\Web_Vuln_Scanner\Web-Vulnerability-Scanner\Mitre-Att&ck/src\ReportFolder\vulnerability_details_20260904_002356_Atk_2026_09_04_01_12_40.json
+2026-09-04 01:13:08,974 INFO     - Finished.
+2026-09-04 01:13:08,974 INFO     Step5: generate the report file
+2026-09-04 01:13:08,976 INFO     creatReport(): Report file created: D:\Projects\Web_Vuln_Scanner\Web_Vuln_Scanner\Web-Vulnerability-Scanner\Mitre-Att&ck/src\ReportFolder\vulnerability_details_20260904_002356_Atk_2026_09_04_01_13_08.json
+2026-09-04 01:13:44,848 INFO     Start to process scenario file: vulnerability_details_20260903T193957984916Z.txt
+2026-09-04 01:13:44,849 INFO     Step1: load threats report.
+2026-09-04 01:13:44,862 INFO     - Finished.
+2026-09-04 01:13:44,863 INFO     Step2: summarize scenario and get attack behaviors list.
+2026-09-04 01:13:57,140 INFO      - Found 10 attack behaviors
+2026-09-04 01:13:57,140 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2026-09-04 01:16:52,747 INFO      - Found 10 mapped MITRE ATT&CK tactic
+2026-09-04 01:16:52,747 INFO     Step4: verifiy whether the technique can match the scenario
+2026-09-04 01:22:58,128 INFO     - Finished.
+2026-09-04 01:22:58,129 INFO     Step5: generate the report file
+2026-09-04 01:22:58,132 INFO     creatReport(): Report file created: D:\Projects\Web_Vuln_Scanner\Web_Vuln_Scanner\Web-Vulnerability-Scanner\Mitre-Att&ck/src\ReportFolder\vulnerability_details_20260903T193957984916Z_Atk_2026_09_04_01_22_58.json
