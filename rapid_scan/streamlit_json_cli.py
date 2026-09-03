@@ -54,7 +54,7 @@ def _persist_scan_state(state):
             history = []
     record = {key: state.get(key) for key in
               ('scan_id', 'url', 'status', 'stage', 'started_at', 'updated_at',
-               'highest_threat_level', 'error')}
+               'highest_threat_level', 'scan_mode', 'mode_reason', 'error')}
     record['result_file'] = os.path.basename(state['result_file']) if state.get('result_file') else None
     record['raw_log_file'] = os.path.basename(state['raw_log_file']) if state.get('raw_log_file') else None
     history = [item for item in history if item.get('scan_id') != record['scan_id']]
@@ -81,7 +81,8 @@ def create_scan_state(url):
     state = {"scan_id": datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'),
              "url": url, "status": "Running", "stage": "Preparing scan",
              "started_at": now, "updated_at": now, "highest_threat_level": "",
-             "results": [], "error": None}
+             "results": [], "tests": [], "scan_mode": "UNKNOWN",
+             "mode_reason": None, "error": None}
     _persist_scan_state(state)
     return state
 
@@ -184,58 +185,37 @@ def write_vulnerability_info_to_file(url, scan_results, timestamp=None, raw_outp
     return filename, mitre_filename, raw_filename
 
 # Function to run the scanner in a separate thread
-def _run_basic_local_scan(url, output_queue):
-    """Small dependency-free fallback for development machines without Docker."""
-    output_queue.put("Local scanner selected: Docker RapidScan is unavailable.")
-    output_queue.put("Deploying < 1s | HTTP security headers")
-    try:
-        request = urllib.request.Request(url, headers={"User-Agent": "WebGuard/1.0"}, method="GET")
-        with urllib.request.urlopen(request, timeout=15) as response:
-            headers = {key.lower(): value for key, value in response.headers.items()}
-            missing = [name for name in ("content-security-policy", "x-content-type-options",
-                                         "strict-transport-security", "x-frame-options")
-                       if name not in headers]
-            level = "Medium" if len(missing) >= 3 else "Low" if missing else "Safe"
-            output_queue.put("Vulnerability Threat Level")
-            output_queue.put(level)
-            output_queue.put("Vulnerability Definition")
-            output_queue.put(f"HTTP {response.status}; missing security headers: {', '.join(missing) or 'none'}.")
-            output_queue.put("Vulnerability Remediation")
-            output_queue.put("Configure the missing HTTP security headers at the web server or reverse proxy.")
-    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
-        output_queue.put("Vulnerability Threat Level")
-        output_queue.put("Unknown")
-        output_queue.put("Vulnerability Definition")
-        output_queue.put(f"HTTP check failed: {exc}")
-        output_queue.put("Vulnerability Remediation")
-        output_queue.put("Verify the URL, DNS, network access, and TLS certificate.")
-    output_queue.put("Scan Completed in 1s")
-    output_queue.put({"type": "DONE", "return_code": 0, "backend": "local-basic"})
-
-
 def run_scan_real_time(url, output_queue):
-    """Run Docker RapidScan when available, otherwise use the local fallback."""
+    """Run the full Docker RapidScan backend; never substitute a partial scan."""
     mode = os.environ.get("WEBGUARD_SCANNER_MODE", "auto").lower()
     docker_available = shutil.which("docker") is not None
-    if mode == "local" or not docker_available:
-        return _run_basic_local_scan(url, output_queue)
+    if mode == "local":
+        output_queue.put({"type": "ERROR", "message": "Local scanner mode is disabled; full Docker RapidScan is required.", "return_code": -1})
+        return
+    if not docker_available:
+        output_queue.put({"type": "ERROR", "message": "Docker executable was not found; full RapidScan cannot run.", "return_code": -1})
+        return
 
     try:
-        docker_ready = subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.PIPE, text=True, timeout=10).returncode == 0
-        image_ready = subprocess.run(["docker", "image", "inspect", "rapidscan"],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                                     text=True, timeout=10).returncode == 0
+        docker_info = subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.PIPE, text=True, timeout=10)
+        image_info = subprocess.run(["docker", "image", "inspect", "rapidscan"],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                    text=True, timeout=10)
+        docker_ready = docker_info.returncode == 0
+        image_ready = image_info.returncode == 0
+        docker_error = (docker_info.stderr.strip() if not docker_ready else
+                        image_info.stderr.strip() if not image_ready else "")
     except (OSError, subprocess.SubprocessError) as exc:
         docker_ready = False
         image_ready = False
         docker_error = str(exc)
     else:
-        docker_error = "Docker daemon is not running or the 'rapidscan' image is not built."
+        docker_error = docker_error or "Docker RapidScan preflight failed."
 
     if not docker_ready or not image_ready:
-        output_queue.put(f"Docker RapidScan unavailable: {docker_error}")
-        return _run_basic_local_scan(url, output_queue)
+        output_queue.put({"type": "ERROR", "message": docker_error, "return_code": -1})
+        return
 
     command = ["docker", "run", "--rm", "rapidscan", url]
     try:
@@ -333,6 +313,14 @@ def perform_vulnerability_scan(url, scan_id=None):
         state["updated_at"] = datetime.now(timezone.utc).isoformat()
         state["highest_threat_level"] = highest_threat_level or "Safe"
         state["results"] = scan_results
+        state["tests"] = [{
+            "test_id": re.sub(r"[^a-z0-9]+", "_", item.get("Test Name", "unknown").lower()).strip("_"),
+            "name": item.get("Test Name", "Unknown"),
+            "status": item.get("Status", "Unknown"),
+            "duration": item.get("Time Taken"),
+            "finding_status": "Potential" if item.get("Threat Level") not in {"Safe", "Unknown", ""}
+                              else "Not Detected"
+        } for item in scan_results]
         state["error"] = error
         _persist_scan_state(state)
 
@@ -346,10 +334,16 @@ def perform_vulnerability_scan(url, scan_id=None):
         while True:
             item = output_queue.get()
             if isinstance(item, dict) and item.get("type") in {"DONE", "ERROR"}:
+                process_succeeded = item.get("type") == "DONE" and item.get("return_code") == 0
                 # Set remaining tests to "Safe"
                 for test in scan_results:
                     if not test["Threat Level"]:
                         test["Threat Level"] = "Safe"
+                    if test.get("Status") == "Running":
+                        test["Status"] = "Completed" if process_succeeded else "Failed"
+                        test["Test Status"] = test["Status"]
+                        test["Time Taken"] = "Unknown"
+                        test["Finding Status"] = "Not Detected" if process_succeeded else "Not Assessed"
                 if not highest_threat_level or highest_threat_level not in valid_threat_levels:
                     highest_threat_level = "Safe"
                 
@@ -365,6 +359,11 @@ def perform_vulnerability_scan(url, scan_id=None):
                     save_state("Failed", item["message"])
                 else:
                     status = "Completed" if item.get("return_code") == 0 else "Failed"
+                    if status == "Completed":
+                        state["scan_mode"] = "FULL"
+                        state["mode_reason"] = "RapidScan Docker backend"
+                    else:
+                        state["scan_mode"] = "FAILED"
                     error = None if status == "Completed" else (
                         f"Scanner exited with code {item.get('return_code')}. "
                         f"See {state.get('raw_log_file', 'the raw log')} for details.")

@@ -71,17 +71,13 @@ def get_svg_content(svg_name):
     except FileNotFoundError:
         return ""
 def initialize_dnsdumpster():
-    try:
-        api_key = "dbdbdd5b1a6707cea92ae17e01764588ffc4ca69bf3e9050f2384b02021f5cca"
-        return api_key
-    except Exception as e:
-        st.error(f"Failed to initialize DNSDumpster: {str(e)}")
-        return None
+    return os.getenv("DNSDUMPSTER_API_KEY")
 
 
 def query_dnsdumpster(domain):
     api_key = initialize_dnsdumpster()
     if not api_key:
+        st.info("DNSDumpster API key is not configured; DNS enrichment was not assessed.")
         return None
     
     headers = {
@@ -883,6 +879,8 @@ if latest_scan and not submit_button:
         st.warning(latest_scan["error"])
     if latest_scan.get("stage"):
         st.caption(f"Current stage: {latest_scan['stage']}")
+    if latest_scan.get("scan_mode"):
+        st.caption(f"Scan mode: {latest_scan['scan_mode']}")
     if latest_scan.get("results"):
         st.dataframe(pd.DataFrame(latest_scan["results"]), use_container_width=True, hide_index=True)
     if latest_scan.get("raw_log_file") and os.path.exists(latest_scan["raw_log_file"]):
@@ -892,7 +890,8 @@ if latest_scan and not submit_button:
 
 history = load_scan_history()
 if history:
-    with st.expander("Scan history"):
+    _, history_tab = st.tabs(["Current Scan", "Scan History"])
+    with history_tab:
         st.dataframe(pd.DataFrame([
             {"URL": item.get("url"), "Status": item.get("status"),
              "Stage": item.get("stage"), "Started": item.get("started_at"),
@@ -1329,6 +1328,15 @@ if submit_button and input_url.strip():
                 report.write("Security Assessment Report\n")
                 report.write(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
                 report.write("==========================================\n\n")
+
+                scan_state = load_latest_scan_state() or {}
+                scan_mode = scan_state.get("scan_mode", "UNKNOWN")
+                report.write(f"Scan Mode: {scan_mode}\n")
+                report.write(f"Mode Reason: {scan_state.get('mode_reason') or 'Not specified'}\n\n")
+                if scan_mode == "BASIC":
+                    report.write("Scan Coverage\n")
+                    report.write("Completed: HTTP security headers, public-path discovery\n")
+                    report.write("Not performed: RapidScan tool suite, XSS, SQL injection, TLS analysis\n\n")
                 
                 # Write DNS Enumeration Results
                 report.write("1. DNS ENUMERATION RESULTS\n")

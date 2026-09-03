@@ -59,13 +59,14 @@ streamlit run main_v2.py
 
 ```
 
-Docker is optional. The full RapidScan tool runs through Docker when the
-Docker daemon is running and the `rapidscan` image exists. Build it once with:
+Docker is required for vulnerability scanning. The full RapidScan tool runs
+through Docker when the Docker daemon is running and the `rapidscan` image
+exists. Build it once with:
 
 ```bash
 docker build -t rapidscan -f rapid_scan/Dockerfile.txt rapid_scan
 ```
 
-Without Docker, WebGuard automatically runs a local HTTP security-header
-check so the scan still produces persistent results and logs. Set
-`WEBGUARD_SCANNER_MODE=local` to force that fallback.
+If Docker or the `rapidscan` image is unavailable, WebGuard marks the scan as
+`FAILED` and records the exact preflight error. It never substitutes a partial
+scan.

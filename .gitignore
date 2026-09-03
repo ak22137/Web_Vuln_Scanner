@@ -1,0 +1,14 @@
+# Python/runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local scan outputs and secrets
+scan_results/*
+!scan_results/scan_history.json
+full_report/*
+Mitre-Att&ck/src/ScenarioBank/*
+Mitre-Att&ck/src/ReportFolder/*
+Mitre-Att&ck/src/Logs/
+.env
+.DS_Store
