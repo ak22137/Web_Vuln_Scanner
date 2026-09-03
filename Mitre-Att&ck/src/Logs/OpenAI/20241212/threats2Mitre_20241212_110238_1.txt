@@ -1,0 +1,11 @@
+2024-12-12 11:03:31,838 INFO     Start to process scenario file: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_details_20241212_110022.txt
+2024-12-12 11:03:31,838 INFO     Step1: load threats report.
+2024-12-12 11:03:31,839 INFO     - Finished.
+2024-12-12 11:03:31,839 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-12 11:03:32,773 INFO      - Found 15 attack behaviors
+2024-12-12 11:03:32,773 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-12 11:03:50,704 INFO      - Found 5 mapped MITRE ATT&CK tactic
+2024-12-12 11:03:50,707 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-12 11:03:56,659 INFO     - Finished.
+2024-12-12 11:03:56,660 INFO     Step5: generate the report file
+2024-12-12 11:03:56,660 INFO     creatReport(): Report file created: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_details_20241212_110022_Atk_2024_12_12_11_03_56.json

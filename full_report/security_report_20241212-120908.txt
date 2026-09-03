@@ -1,0 +1,154 @@
+==========================================
+Security Assessment Report
+Generated on: 2024-12-12 12:09:08
+==========================================
+
+1. DNS ENUMERATION RESULTS
+------------------------------------------
+1.1 Discovered Subdomains:
+  - aspnet.testsparker.com
+
+1.2 Associated IP Addresses:
+  - 54.204.37.212
+
+2. IP Proxy ANALYSIS
+------------------------------------------
+IP: 54.204.37.212
+Details: {'ip': '54.204.37.212', 'asn': 'AS14618', 'range': '54.204.37.0/20', 'provider': 'Amazon.com, Inc.', 'organisation': 'Amazon Technologies Inc.', 'continent': 'North America', 'country': 'United States', 'region': 'Virginia', 'city': 'Ashburn', 'postcode': '20149', 'latitude': 39.0438, 'longitude': -77.4874, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+
+3. VULNERABILITY SCAN RESULTS
+------------------------------------------
+
+No payloads were tested.
+4. CVSS THREAT ASSESSMENT
+------------------------------------------
+
+                        **Test**: Attempting Multiple Zone Transfers on Nameservers.  
+                        **Threat Level**: Medium-5.00
+                        ---
+                    
+                        **Test**: Scanning for emails using Google's passive search.  
+                        **Threat Level**: Medium-5.00
+                        ---
+                    
+                        **Test**: Attempting Zone Transfer.  
+                        **Threat Level**: Medium-4.30
+                        ---
+                    
+                        **Test**: Brute-forcing Directories on the Domain.  
+                        **Threat Level**: Medium-4.30
+                        ---
+                    
+5. DETAILED VULNERABILITY ANALYSIS
+------------------------------------------
+                                                Test Name     Status Time Taken Expected Time Threat Level                                                                                                                                                                                                                                                                    Definition                                                                                                                                                                                                                                                                                                                                                                                                         Remediation
+0   Checking for SQLi, RCE, XSS and Other Vulnerabilities  Completed         1s           35s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+1      Attempting Multiple Zone Transfers on Nameservers.  Completed         1s           30s       Medium                   [91mSensitive Information Leakage Detected. The ASP.Net application does not filter out illegal characters in the URL. The attacker injects a special character (%7C~.aspx) to make the application spit sensitive information about the server stack.[0m  [92mIt is recommended to filter out special charaters in the URL and set a custom error page on such situations instead of showing default error messages. This resource helps you in setting up a custom error page on a Microsoft .Net Application. https://docs.microsoft.com/en-us/aspnet/web-forms/overview/older-versions-getting-started/deploying-web-site-projects/displaying-a-custom-error-page-cs[0m
+2      Scanning for emails using Google's passive search.  Completed         1s           15s         Safe  [91mNot a vulnerability, just an informational alert. The host does not have IPv6 support. IPv6 provides more security as IPSec (responsible for CIA - Confidentiality, Integrity and Availablity) is incorporated into this model. So it is good to have IPv6 Support.[0m                                                                                                                                                                                   [92mIt is recommended to implement IPv6. More information on how to implement IPv6 can be found from this resource. https://www.cisco.com/c/en/us/solutions/collateral/enterprise/cisco-on-cisco/IPv6-Implementation_CS.html[0m
+3                    Checking for X-XSS Protection Header  Completed         1s           25s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+4          Brute-forcing the target for Open Directories.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+5        Checking for Cross-Site Scripting [XSS] Attacks.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+6                   Checking for DNS/HTTP Load Balancers.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+7                               Attempting Zone Transfer.  Completed         4s           40s         Safe                     [91mSometimes robots.txt or sitemap.xml may contain rules such that certain links that are not supposed to be accessed/indexed by crawlers and search engines. Search engines may skip those links but attackers will be able to access it directly.[0m                                                                                                                                                                                                                                                                                                                       [92mIt is a good practice not to include sensitive links in the robots or sitemap files.[0m
+8                          Checking for LFI, RFI and RCE.  Completed         1s            3m         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+9                     Brute-forcing Domain for Subdomains  Completed         2s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+10             Brute-forcing for Filenames on the Domain.  Completed         1s           45s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+11               Brute-forcing Directories on the Domain.  Completed         2s            2m          Low                                                                                     [91mOpen Ports give attackers a hint to exploit the services. Attackers try to retrieve banner information through the ports and understand what type of service the host is running[0m                                                                                                                                                                                                  [92mIt is recommended to close the ports of unused services and use a firewall to filter the ports wherever necessary. This resource may give more insights. https://security.stackexchange.com/a/145781/6137[0m
+12                              Brute-forcing Subdomains.  Completed         9s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+6. MITRE ATT&CK FRAMEWORK ANALYSIS
+------------------------------------------
+{
+  "ScenarioName": "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_details_20241212_120840.txt",
+  "ReportType": "ATT&CK",
+  "AttackBehaviors": [
+    "1. **Zone Transfer Attack**:",
+    "1. Attempting multiple zone transfers on nameservers.",
+    "2. Retrieving sensitive information about the server stack by injecting special characters in the URL.",
+    "3. Accessing links that are not supposed to be accessed/indexed by crawlers and search engines.",
+    "2. **IPv6 Support Informational Alert**:",
+    "1. Scanning for IPv6 support on the host.",
+    "2. Identifying the lack of IPv6 support, which may provide less security compared to IPv6.",
+    "3. **Brute-forcing Directories**:",
+    "1. Brute-forcing directories on the domain.",
+    "2. Retrieving banner information through open ports to understand the type of service the host is running.",
+    "4. **Robots.txt and Sitemap.xml Analysis**:",
+    "1. Analyzing the contents of robots.txt or sitemap.xml files.",
+    "2. Identifying sensitive links that should not be accessed/indexed by crawlers and search engines.",
+    "5. **Open Ports Informational Alert**:",
+    "1. Scanning for open ports on the host.",
+    "2. Identifying open ports that may provide attackers with hints to exploit the services."
+  ],
+  "tactic: Reconnaissance": {
+    "technique: T1590 - Server Message Block (SMB) Remote Code Execution": {
+      "match": false,
+      "detail": "explanation: There is no mention of SMB or Remote Code Execution in the given scenario. The scenario describes various tests and vulnerabilities related to web applications, zone transfers, and port scanning, but does not involve SMB or Remote Code Execution."
+    },
+    "technique: T1590 - Domain Name System (DNS) Zone Transfer": {
+      "match": true,
+      "detail": "explanation: The technique T1590 - Domain Name System (DNS) Zone Transfer matches the scenario description \"Test: Attempting Zone Transfer.\" This test involves attempting to retrieve a DNS zone file from a nameserver, which is a common technique used by attackers to gather information about a target's domain."
+    },
+    "technique: Gather Victim Data": {
+      "match": true,
+      "detail": "explanation: The technique can be found in the scenario description where the attacker injects a special character to make the application spit sensitive information about the server stack, which is an example of gathering victim data."
+    },
+    "technique: T1590 - Network Scanning": {
+      "match": true,
+      "detail": "explanation: The technique T1590 - Network Scanning can be found in the scenario description, specifically in the \"Test: Brute-forcing Directories on the Domain\" section, where it mentions \"Open Ports give attackers a hint to exploit the services. Attackers try to retrieve banner information through the ports and understand what type of service the host is running\". This suggests that the attackers are scanning the network to identify open ports and services."
+    },
+    "technique: Network Scanning": {
+      "match": true,
+      "detail": "explanation: The scenario describes a test of \"Brute-forcing Directories on the Domain\" which involves scanning the domain for open ports and potentially attempting to retrieve banner information, which can be considered as a form of network scanning."
+    },
+    "technique: T1590 - Profiling": {
+      "match": false,
+      "detail": "explanation: The given scenario does not describe any activity related to profiling, such as gathering information about the target system or user. The scenario focuses on testing vulnerabilities and scanning for potential security issues."
+    },
+    "technique: T1590 - Blind Command Injection": {
+      "match": false,
+      "detail": "explanation: The given scenario does not describe a blind command injection attack. Instead, it describes an application that does not filter out illegal characters in the URL, allowing an attacker to inject a special character and obtain sensitive information about the server stack. This is more related to T1485: Web Shell (injection of a web shell via a vulnerable web application)."
+    },
+    "technique: OS Detection": {
+      "match": false,
+      "detail": "explanation: The given scenario does not describe any method of OS detection. The scenario involves various tests such as attempting multiple zone transfers, scanning for emails, attempting zone transfer, and brute-forcing directories, but OS detection is not mentioned."
+    },
+    "technique: OS Discovery, Network Service Scanning": {
+      "match": true,
+      "detail": "explanation: The technique can be found in the scenario description, specifically in the \"Test: Brute-forcing Directories on the Domain\" section, where it is mentioned that attackers try to retrieve banner information through the ports and understand what type of service the host is running, which is related to OS Discovery and Network Service Scanning."
+    }
+  },
+  "tactic: Discovery": {
+    "technique: Input Validation (T1059.003)": {
+      "match": true,
+      "detail": "explanation: The given technique, Input Validation (T1059.003), matches the scenario description where the ASP.Net application does not filter out illegal characters in the URL, allowing an attacker to inject special characters and obtain sensitive information. This is a classic example of input validation failure, where the application does not properly validate user input, leading to a security vulnerability."
+    }
+  },
+  "tactic: Execution": {
+    "technique: T1210 - Exploitation of Remote Services": {
+      "match": true,
+      "detail": "explanation: This technique can match the part of the scenario description \"Brute-forcing Directories on the Domain\" where it is mentioned that attackers try to retrieve banner information through the ports and understand what type of service the host is running. This is a form of exploitation of remote services to gather information."
+    }
+  },
+  "tactic: Exploitation of Functionality": {
+    "technique: T1210 - Exploit Public-Facing Application": {
+      "match": true,
+      "detail": "explanation: The given scenario describes an attacker injecting special characters into the URL of a public-facing ASP.Net application to exploit a vulnerability and gain sensitive information, which matches the MITRE ATT&CK technique T1210 - Exploit Public-Facing Application."
+    }
+  },
+  "tactic:": {
+    "technique:": {
+      "match": false,
+      "detail": null
+    }
+  },
+  "tactic: Defense Evasion": {
+    "technique: T1070 - Indicator Removal on Host": {
+      "match": false,
+      "detail": "explanation: The given scenario does not describe any actions related to removing indicators from a host. The scenario focuses on vulnerability scanning, testing, and remediation."
+    },
+    "technique: T1587 - Exploitation of Functionality": {
+      "match": true,
+      "detail": "explanation: This technique can match the scenario description where the ASP.Net application does not filter out illegal characters in the URL, allowing the attacker to inject a special character and make the application spit sensitive information about the server stack, which is an exploitation of the application's functionality."
+    }
+  },
+  "Time": "2024_12_12_12_09_08"
+}

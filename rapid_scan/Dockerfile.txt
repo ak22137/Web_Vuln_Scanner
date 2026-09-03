@@ -1,0 +1,44 @@
+FROM kalilinux/kali-rolling
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Configure apt to retry downloads and use multiple mirrors
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
+    echo "deb http://archive.kali.org/kali kali-rolling main non-free contrib" > /etc/apt/sources.list && \
+    echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" >> /etc/apt/sources.list
+
+# Basic system update and essential pack ages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    host \
+    whois \
+    sslyze \
+    wapiti \
+    nmap \
+    dmitry \
+    dnsenum \
+    dnsmap \
+    dnsrecon \
+    dnswalk \
+    dirb \
+    wafw00f \
+    whatweb \
+    nikto \
+    lbd \
+    xsser \
+    fierce \
+    theharvester \
+    davtest \
+    uniscan \
+    amass \
+    wget
+
+# Clean up
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY rapidscan.py /usr/local/bin/rapidscan.py
+RUN chmod +x /usr/local/bin/rapidscan.py
+WORKDIR /app
+ENTRYPOINT ["python3", "/usr/local/bin/rapidscan.py"]

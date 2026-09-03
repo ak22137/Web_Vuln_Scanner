@@ -1,0 +1,127 @@
+==========================================
+Security Assessment Report
+Generated on: 2024-12-12 11:30:12
+==========================================
+
+1. DNS ENUMERATION RESULTS
+------------------------------------------
+1.1 Discovered Subdomains:
+  - abhilekhborah.github.io
+
+1.2 Associated IP Addresses:
+  - 185.199.108.153
+  - 185.199.111.153
+  - 185.199.109.153
+  - 185.199.110.153
+
+2. IP Proxy ANALYSIS
+------------------------------------------
+IP: 185.199.108.153
+Details: {'ip': '185.199.108.153', 'asn': 'AS54113', 'range': '185.199.108.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.111.153
+Details: {'ip': '185.199.111.153', 'asn': 'AS54113', 'range': '185.199.111.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.109.153
+Details: {'ip': '185.199.109.153', 'asn': 'AS54113', 'range': '185.199.109.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.110.153
+Details: {'ip': '185.199.110.153', 'asn': 'AS54113', 'range': '185.199.110.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+
+3. VULNERABILITY SCAN RESULTS
+------------------------------------------
+Target URL: https://abhilekhborah.github.io/
+Status Code: 200
+Response Size: 8347 bytes
+
+Tested Payloads:
+1. //google.com
+2. /%3C%3E//google.com
+3. /%25252F%25252Fgoogle.com
+4. ////google.com/%252e%252e
+5. /https%3A/%255cgoogle.com/
+6. ..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C%5Cboot.ini
+7. ..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C..%5C%5Cboot.ini%2500
+8. ..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255cwindows%255cwin.ini%2500test.htm
+9. /../../../../../../../../../../../../../../../../../etc/passwd
+10. /../../../../../../../../../../../../../../../../../etc/passwd%2500
+4. CVSS THREAT ASSESSMENT
+------------------------------------------
+
+                        **Test**: Brute-forcing Directories on the Domain.  
+                        **Threat Level**: Medium-4.30
+                        ---
+                    
+5. DETAILED VULNERABILITY ANALYSIS
+------------------------------------------
+                                                Test Name     Status Time Taken Expected Time Threat Level                                                                                                                                                                                 Definition                                                                                                                                                                                                         Remediation
+0      Scanning for emails using Google's passive search.  Completed         1s           15s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+1   Checking for SQLi, RCE, XSS and Other Vulnerabilities  Completed         1s           35s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+2        Checking for Cross-Site Scripting [XSS] Attacks.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+3      Attempting Multiple Zone Transfers on Nameservers.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+4                               Brute-forcing Subdomains.  Completed         1s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+5                Brute-forcing Directories on the Domain.  Completed         3s            2m          Low  [91mOpen Ports give attackers a hint to exploit the services. Attackers try to retrieve banner information through the ports and understand what type of service the host is running[0m  [92mIt is recommended to close the ports of unused services and use a firewall to filter the ports wherever necessary. This resource may give more insights. https://security.stackexchange.com/a/145781/6137[0m
+6                               Attempting Zone Transfer.  Completed         4s           40s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+7                   Checking for DNS/HTTP Load Balancers.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+8              Brute-forcing for Filenames on the Domain.  Completed         1s           45s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+9          Brute-forcing the target for Open Directories.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+10                         Checking for LFI, RFI and RCE.  Completed         1s            3m         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+11                    Brute-forcing Domain for Subdomains  Completed         1s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+12                   Checking for X-XSS Protection Header  Completed         2s           25s         Safe                                                                                                                                                                                                                                                                                                                                                                                                               
+6. MITRE ATT&CK FRAMEWORK ANALYSIS
+------------------------------------------
+{
+  "ScenarioName": "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_details_20241212_113000.txt",
+  "ReportType": "ATT&CK",
+  "AttackBehaviors": [
+    "1. Scanning the target domain (https://abhilekhborah.github.io/) for open ports.",
+    "2. Identifying the services running on the open ports.",
+    "3. Retrieving banner information from the services to understand the type of service and its version.",
+    "4. Analyzing the retrieved information to identify potential vulnerabilities in the services.",
+    "5. Brute-forcing directories on the domain to find hidden or unauthorized directories.",
+    "6. Attempting to exploit the identified vulnerabilities in the services.",
+    "7. Using the retrieved information to plan further attacks or to gain unauthorized access to the system."
+  ],
+  "tactic: Reconnaissance": {
+    "technique: OS Discovery": {
+      "match": true,
+      "detail": "explanation: The technique of OS Discovery can match the part of the scenario description where attackers try to retrieve banner information through the ports to understand what type of service the host is running, which is a form of OS discovery."
+    },
+    "technique: OS Detection, Network Scanning": {
+      "match": true,
+      "detail": "explanation: The technique of OS Detection, Network Scanning can match the part of the scenario description where it is mentioned that \"attackers try to retrieve banner information through the ports and understand what type of service the host is running\". This is because network scanning is a method used to identify open ports and services running on a host, which is a key part of the OS Detection technique."
+    },
+    "technique: OS Detection, Network Service Scanning": {
+      "match": true,
+      "detail": "explanation: The given MITRE ATT&CK technique matches the scenario description where attackers try to retrieve banner information through the ports and understand what type of service the host is running. This is a part of the Network Service Scanning, which involves scanning the network to identify open ports and services running on a host."
+    }
+  },
+  "tactic:": {
+    "technique:": {
+      "match": false,
+      "detail": null
+    }
+  },
+  "tactic: Command and Control": {
+    "technique: OS Discovery, Process Discovery": {
+      "match": true,
+      "detail": "explanation: The technique can match the part of the scenario description where the attackers try to retrieve banner information through the ports and understand what type of service the host is running (i.e., \"understand what type of service the host is running\") which is a part of OS Discovery and Process Discovery."
+    },
+    "technique: OS Credential Dumping": {
+      "match": false,
+      "detail": "explanation: The given MITRE ATT&CK technique \"OS Credential Dumping\" does not match the scenario description. The scenario is about brute-forcing directories on the domain and exploiting open ports, whereas \"OS Credential Dumping\" involves extracting credentials from the operating system, which is not mentioned in the scenario."
+    },
+    "technique: Brute Force, Credential Dumping": {
+      "match": true,
+      "detail": "explanation: The given MITRE ATT&CK technique \"Brute Force, Credential Dumping\" can match the part of the scenario description where it is mentioned \"Test: Brute-forcing Directories on the Domain\". This is because brute-forcing is a method of trying all possible combinations to gain unauthorized access, which aligns with the scenario description of brute-forcing directories."
+    },
+    "technique: Brute Force": {
+      "match": true,
+      "detail": "explanation: The given MITRE ATT&CK technique \"Brute Force\" matches the scenario description \"Test: Brute-forcing Directories on the Domain.\" This indicates that the attacker is attempting to try all possible combinations or directories to gain access, which is a form of brute-force attack."
+    }
+  },
+  "tactic: Exploitation of Vulnerability": {
+    "technique: T1055 - Process Injection": {
+      "match": false,
+      "detail": "explanation: The given MITRE ATT&CK technique \"T1055 - Process Injection\" is related to injecting malicious code into a process, which is not directly related to the scenario description of brute-forcing directories on the domain and exploiting open ports. The scenario focuses more on network scanning and exploiting open ports, rather than process injection."
+    }
+  },
+  "Time": "2024_12_12_11_30_12"
+}

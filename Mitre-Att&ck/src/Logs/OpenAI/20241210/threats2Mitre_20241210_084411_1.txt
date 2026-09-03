@@ -1,0 +1,55 @@
+2024-12-10 08:44:15,611 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 08:44:15,611 INFO     Step1: load threats report.
+2024-12-10 08:44:15,611 INFO     - Finished.
+2024-12-10 08:44:15,611 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 08:44:17,366 INFO      - Found 8 attack behaviors
+2024-12-10 08:44:17,367 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-10 08:44:21,747 INFO      - Found 3 mapped MITRE ATT&CK tactic
+2024-12-10 08:44:21,748 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-10 08:44:24,486 INFO     - Finished.
+2024-12-10 08:44:24,486 INFO     Step5: generate the report file
+2024-12-10 08:44:24,500 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder/vulnerability_new_Atk_2024_12_10_08_44_24.json
+2024-12-10 08:44:30,582 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 08:44:30,582 INFO     Step1: load threats report.
+2024-12-10 08:44:30,583 INFO     - Finished.
+2024-12-10 08:44:30,583 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 08:44:33,745 INFO      - Found 6 attack behaviors
+2024-12-10 08:44:33,745 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-10 08:44:38,929 INFO      - Found 3 mapped MITRE ATT&CK tactic
+2024-12-10 08:44:38,932 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-10 08:44:48,734 INFO     - Finished.
+2024-12-10 08:44:48,735 INFO     Step5: generate the report file
+2024-12-10 08:44:48,735 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder/vulnerability_new_Atk_2024_12_10_08_44_48.json
+2024-12-10 08:44:56,515 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 08:44:56,515 INFO     Step1: load threats report.
+2024-12-10 08:44:56,516 INFO     - Finished.
+2024-12-10 08:44:56,516 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 08:45:02,623 INFO      - Found 5 attack behaviors
+2024-12-10 08:45:02,623 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-10 08:45:10,414 INFO      - Found 2 mapped MITRE ATT&CK tactic
+2024-12-10 08:45:10,415 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-10 08:45:21,738 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 08:45:21,739 INFO     Step1: load threats report.
+2024-12-10 08:45:21,740 INFO     - Finished.
+2024-12-10 08:45:21,740 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 08:45:57,676 INFO     - Finished.
+2024-12-10 08:45:57,677 INFO     Step5: generate the report file
+2024-12-10 08:45:57,678 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder/vulnerability_new_Atk_2024_12_10_08_45_57.json
+2024-12-10 08:46:03,637 INFO      - Found 5 attack behaviors
+2024-12-10 08:46:03,637 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-10 08:46:05,964 INFO      - Found 3 mapped MITRE ATT&CK tactic
+2024-12-10 08:46:05,965 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-10 08:46:11,490 INFO     - Finished.
+2024-12-10 08:46:11,491 INFO     Step5: generate the report file
+2024-12-10 08:46:11,492 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder/vulnerability_new_Atk_2024_12_10_08_46_11.json
+2024-12-10 08:46:28,672 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 08:46:28,673 INFO     Step1: load threats report.
+2024-12-10 08:46:28,674 INFO     - Finished.
+2024-12-10 08:46:28,674 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 08:46:29,651 INFO      - Found 7 attack behaviors
+2024-12-10 08:46:29,652 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)
+2024-12-10 08:46:33,305 INFO      - Found 3 mapped MITRE ATT&CK tactic
+2024-12-10 08:46:33,305 INFO     Step4: verifiy whether the technique can match the scenario
+2024-12-10 08:46:34,902 INFO     - Finished.
+2024-12-10 08:46:34,904 INFO     Step5: generate the report file
+2024-12-10 08:46:34,908 INFO     creatReport(): Report file created: /Users/deltae/Downloads/SIH-Finals/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ReportFolder/vulnerability_new_Atk_2024_12_10_08_46_34.json

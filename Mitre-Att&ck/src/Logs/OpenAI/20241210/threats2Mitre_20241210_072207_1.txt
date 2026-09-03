@@ -1,0 +1,4 @@
+2024-12-10 07:22:19,763 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-10 07:22:19,764 INFO     Step1: load threats report.
+2024-12-10 07:22:19,765 INFO     - Finished.
+2024-12-10 07:22:19,765 INFO     Step2: parse the vulnerabilies.

@@ -1,0 +1,6 @@
+2024-12-10 07:26:02,402 INFO     Start to process scenario file: maliciousMacroReport.txt
+2024-12-10 07:26:02,404 INFO     Step1: load threats report.
+2024-12-10 07:26:02,405 INFO     - Finished.
+2024-12-10 07:26:02,405 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-10 07:26:03,697 INFO      - Found 4 attack behaviors
+2024-12-10 07:26:03,697 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)

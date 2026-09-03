@@ -1,0 +1,29 @@
+==========================================
+Security Assessment Report
+Generated on: 2024-12-12 16:48:08
+==========================================
+
+1. DNS ENUMERATION RESULTS
+------------------------------------------
+1.1 Discovered Subdomains:
+  - abhilekhborah.github.io
+
+1.2 Associated IP Addresses:
+  - 185.199.108.153
+  - 185.199.109.153
+  - 185.199.111.153
+  - 185.199.110.153
+
+2. IP Proxy ANALYSIS
+------------------------------------------
+IP: 185.199.108.153
+Details: {'ip': '185.199.108.153', 'asn': 'AS54113', 'range': '185.199.108.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.109.153
+Details: {'ip': '185.199.109.153', 'asn': 'AS54113', 'range': '185.199.109.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.111.153
+Details: {'ip': '185.199.111.153', 'asn': 'AS54113', 'range': '185.199.111.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 185.199.110.153
+Details: {'ip': '185.199.110.153', 'asn': 'AS54113', 'range': '185.199.110.0/22', 'provider': 'Fastly, Inc.', 'organisation': 'GitHub, Inc', 'continent': 'North America', 'country': 'United States', 'region': 'California', 'city': 'San Francisco (South Beach)', 'postcode': '94107', 'latitude': 37.7823, 'longitude': -122.391, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+
+3. FUZZING RESULTS
+------------------------------------------

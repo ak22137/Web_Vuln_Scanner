@@ -1,0 +1,42 @@
+Wapiti - Checks for SQLi, RCE, XSS and Other Vulnerabilities
+------------------------
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2024-12-06 19:23 IST
+Nmap scan report for github.com (20.207.73.82)
+Host is up (0.046s latency).
+
+PORT   STATE SERVICE
+80/tcp open  http
+| http-security-headers: 
+|   Strict_Transport_Security: 
+|     Header: Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+|   X_Frame_Options: 
+|     Header: X-Frame-Options: deny
+|     Description: The browser must not display this content in any frame.
+|   X_XSS_Protection: 
+|     Header: X-XSS-Protection: 0
+|     Description: The XSS filter is disabled.
+|   X_Content_Type_Options: 
+|     Header: X-Content-Type-Options: nosniff
+|     Description: Will prevent the browser from MIME-sniffing a response away from the declared content-type. 
+|   Content_Security_Policy: 
+|     Header: Content-Security-Policy: default-src 'none'; base-uri 'self'; child-src github.com/assets-cdn/worker/ github.com/webpack/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net/ productionresultssa1.blob.core.windows.net/ productionresultssa2.blob.core.windows.net/ productionresultssa3.blob.core.windows.net/ productionresultssa4.blob.core.windows.net/ productionresultssa5.blob.core.windows.net/ productionresultssa6.blob.core.windows.net/ productionresultssa7.blob.core.windows.net/ productionresultssa8.blob.core.windows.net/ productionresultssa9.blob.core.windows.net/ productionresultssa10.blob.core.windows.net/ productionresultssa11.blob.core.windows.net/ productionresultssa12.blob.core.windows.net/ productionresultssa13.blob.core.windows.net/ productionresultssa14.blob.core.windows.net/ productionresultssa15.blob.core.windows.net/ productionresultssa16.blob.core.windows.net/ productionresultssa17.blob.core.windows.net/ productionresultssa18.blob.core.windows.net/ productionresultssa19.blob.core.windows.net/ github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com github.githubassets.com edge.fullstory.com rs.fullstory.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com www.youtube-nocookie.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com secured-user-images.githubusercontent.com/ user-images.githubusercontent.com/ private-user-images.githubusercontent.com opengraph.githubassets.com github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com/ secured-user-images.githubusercontent.com/ private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.com/assets-cdn/worker/ github.com/webpack/ github.com/assets/ gist.github.com/assets-cdn/worker/
+|     Description: Define the base uri for relative uri.
+|     Description: Define loading policy for all resources type in case of a resource type dedicated directive is not defined (fallback).
+|     Description: Define which scripts the protected resource can execute.
+|     Description: Define which styles (CSS) the user applies to the protected resource.
+|     Description: Define from where the protected resource can load images.
+|     Description: Define from where the protected resource can load video and audio.
+|     Description: Deprecated and replaced by child-src. Define from where the protected resource can embed frames.
+|     Description: Define from where the protected resource can embed frames.
+|     Description: Define from where the protected resource can be embedded in frames.
+|     Description: Define from where the protected resource can load fonts.
+|     Description: Define which URIs the protected resource can load using script interfaces.
+|     Description: Define which URIs can be used as the action of HTML form elements.
+|     Description: Instructs user agent to download insecure resources using HTTPS.
+|   Cache_Control: 
+|_    Header: Cache-Control: max-age=0, private, must-revalidate
+
+Nmap done: 1 IP address (1 host up) scanned in 1.10 seconds
+
+

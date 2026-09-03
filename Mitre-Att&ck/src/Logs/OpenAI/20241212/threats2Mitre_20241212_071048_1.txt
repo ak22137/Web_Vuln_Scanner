@@ -1,0 +1,12 @@
+2024-12-12 07:10:49,505 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-12 07:10:49,506 INFO     Step1: load threats report.
+2024-12-12 07:10:49,506 WARNING  Thret scenario file not exist: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_new.txt
+2024-12-12 07:10:49,507 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-12 07:10:49,507 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-12 07:10:49,587 INFO     Step1: load threats report.
+2024-12-12 07:10:49,590 INFO     Step1: load threats report.
+2024-12-12 07:10:49,591 WARNING  Thret scenario file not exist: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_new.txt
+2024-12-12 07:10:49,591 WARNING  Thret scenario file not exist: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_new.txt
+2024-12-12 07:10:50,528 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-12 07:10:50,529 INFO     Step1: load threats report.
+2024-12-12 07:10:50,529 WARNING  Thret scenario file not exist: /Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_new.txt

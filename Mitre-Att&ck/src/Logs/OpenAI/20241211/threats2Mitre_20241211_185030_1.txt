@@ -1,0 +1,6 @@
+2024-12-11 18:51:14,101 INFO     Start to process scenario file: vulnerability_new.txt
+2024-12-11 18:51:14,101 INFO     Step1: load threats report.
+2024-12-11 18:51:14,102 INFO     - Finished.
+2024-12-11 18:51:14,102 INFO     Step2: summarize scenario and get attack behaviors list.
+2024-12-11 18:51:19,229 INFO      - Found 8 attack behaviors
+2024-12-11 18:51:19,229 INFO     Step3: map every behavior to MITRE ATT&CK Matrix (tactic, technique)

@@ -1,0 +1,25 @@
+# This is the config file template for the module <threats2MitreUtils.py>
+# Setup the parameter with below format (every line follow <key>:<val> format, the
+# key cannot be changed):
+
+# set openAI API key
+API_KEY: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
+
+# set the AI model apply to the mapper.
+AI_MODEL:llama-3.1-8b-instant
+
+# set the AI model apply to the verifier, if not set program will use the same as the mapper.
+API_KEY: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
+VF_AI_MODEL:llama-3.1-8b-instant
+
+# Scenario bank folder (folder to store the threats report srource)
+SCE_BANK:ScenarioBank
+
+# Output folder (folder to store the threats report)
+RST_FOLDER:ReportFolder
+
+#-----------------------------------------------------------------------------
+# Init the Flask app parameters
+FLASK_SER_PORT:5000
+FLASK_DEBUG_MD:False
+FLASK_MULTI_TH:True

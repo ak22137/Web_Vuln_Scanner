@@ -1,0 +1,129 @@
+==========================================
+Security Assessment Report
+Generated on: 2024-12-12 11:48:31
+==========================================
+
+1. DNS ENUMERATION RESULTS
+------------------------------------------
+1.1 Discovered Subdomains:
+  - rest.testsparker.com
+  - php.testsparker.com
+  - angular.testsparker.com
+
+1.2 Associated IP Addresses:
+  - 107.20.213.223
+  - 52.1.112.43
+  - 18.215.71.186
+
+2. IP Proxy ANALYSIS
+------------------------------------------
+IP: 107.20.213.223
+Details: {'ip': '107.20.213.223', 'asn': 'AS14618', 'range': '107.20.0.0/15', 'provider': 'Amazon.com, Inc.', 'organisation': 'Amazon.com, Inc.', 'continent': 'North America', 'country': 'United States', 'region': 'Virginia', 'city': 'Ashburn', 'postcode': '20149', 'latitude': 39.0438, 'longitude': -77.4874, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 52.1.112.43
+Details: {'ip': '52.1.112.43', 'asn': 'AS14618', 'range': '52.1.112.0/21', 'provider': 'Amazon.com, Inc.', 'organisation': 'Amazon Technologies Inc', 'continent': 'North America', 'country': 'United States', 'region': 'Virginia', 'city': 'Ashburn', 'postcode': '20149', 'latitude': 39.0438, 'longitude': -77.4874, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+IP: 18.215.71.186
+Details: {'ip': '18.215.71.186', 'asn': 'AS14618', 'range': '18.215.71.0/17', 'provider': 'Amazon.com, Inc.', 'organisation': 'Amazon Technologies Inc.', 'continent': 'North America', 'country': 'United States', 'region': 'Virginia', 'city': 'Ashburn', 'postcode': '20149', 'latitude': 39.0438, 'longitude': -77.4874, 'proxy': 'yes', 'type': 'VPN', 'operator': None, 'source': 'cache'}
+
+3. VULNERABILITY SCAN RESULTS
+------------------------------------------
+
+No payloads were tested.
+4. CVSS THREAT ASSESSMENT
+------------------------------------------
+
+                        **Test**: Scanning for emails using Google's passive search.  
+                        **Threat Level**: Medium-5.00
+                        ---
+                    
+                        **Test**: Brute-forcing Directories on the Domain.  
+                        **Threat Level**: Medium-4.30
+                        ---
+                    
+                        **Test**: Attempting Multiple Zone Transfers on Nameservers.  
+                        **Threat Level**: Medium-5.00
+                        ---
+                    
+                        **Test**: Checking for X-XSS Protection Header  
+                        **Threat Level**: Medium-4.30
+                        ---
+                    
+5. DETAILED VULNERABILITY ANALYSIS
+------------------------------------------
+                                                Test Name     Status Time Taken Expected Time Threat Level                                                                                                                                                                                                                                                                                                                                             Definition                                                                                                                                                                                                                                                                                                                                                                                                         Remediation
+0      Scanning for emails using Google's passive search.  Completed         1s           15s         Safe                                                                           [91mNot a vulnerability, just an informational alert. The host does not have IPv6 support. IPv6 provides more security as IPSec (responsible for CIA - Confidentiality, Integrity and Availablity) is incorporated into this model. So it is good to have IPv6 Support.[0m                                                                                                                                                                                   [92mIt is recommended to implement IPv6. More information on how to implement IPv6 can be found from this resource. https://www.cisco.com/c/en/us/solutions/collateral/enterprise/cisco-on-cisco/IPv6-Implementation_CS.html[0m
+1                     Brute-forcing Domain for Subdomains  Completed         2s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+2        Checking for Cross-Site Scripting [XSS] Attacks.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+3                   Checking for DNS/HTTP Load Balancers.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+4                Brute-forcing Directories on the Domain.  Completed         6s            2m          Low                                                                                                                                                              [91mOpen Ports give attackers a hint to exploit the services. Attackers try to retrieve banner information through the ports and understand what type of service the host is running[0m                                                                                                                                                                                                  [92mIt is recommended to close the ports of unused services and use a firewall to filter the ports wherever necessary. This resource may give more insights. https://security.stackexchange.com/a/145781/6137[0m
+5          Brute-forcing the target for Open Directories.  Completed         1s           30s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+6              Brute-forcing for Filenames on the Domain.  Completed         1s           45s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+7      Attempting Multiple Zone Transfers on Nameservers.  Completed         1s           30s       Medium                                                                                            [91mSensitive Information Leakage Detected. The ASP.Net application does not filter out illegal characters in the URL. The attacker injects a special character (%7C~.aspx) to make the application spit sensitive information about the server stack.[0m  [92mIt is recommended to filter out special charaters in the URL and set a custom error page on such situations instead of showing default error messages. This resource helps you in setting up a custom error page on a Microsoft .Net Application. https://docs.microsoft.com/en-us/aspnet/web-forms/overview/older-versions-getting-started/deploying-web-site-projects/displaying-a-custom-error-page-cs[0m
+8                               Brute-forcing Subdomains.  Completed         4s           20s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+9   Checking for SQLi, RCE, XSS and Other Vulnerabilities  Completed         1s           35s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+10                   Checking for X-XSS Protection Header  Completed         2s           25s         Safe  [91mThe email address of the administrator and other information (address, phone, etc) is available publicly. An attacker may use these information to leverage an attack. This may not be used to carry out a direct attack as this is not a vulnerability. However, an attacker makes use of these data to build information about the target.[0m                                                                                    [92mSome administrators intentionally would have made this information public, in this case it can be ignored. If not, it is recommended to mask the information. This resource provides information on this fix. http://www.name.com/blog/how-tos/tutorial-2/2013/06/protect-your-personal-information-with-whois-privacy/[0m
+11                         Checking for LFI, RFI and RCE.  Completed         1s            3m         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+12                              Attempting Zone Transfer.  Completed         6s           40s         Safe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+6. MITRE ATT&CK FRAMEWORK ANALYSIS
+------------------------------------------
+{
+  "ScenarioName": "/Users/apple/Desktop/Web-Vulnerability-Scanner/Mitre-Att&ck/src/ScenarioBank/vulnerability_details_20241212_114802.txt",
+  "ReportType": "ATT&CK",
+  "AttackBehaviors": [
+    "1. **Passive Information Gathering**: The attacker uses Google's passive search to gather information about the target domain, including its email address and other publicly available information.",
+    "2. **IPv6 Support Detection**: The attacker detects that the target host does not have IPv6 support, which is a security risk as IPv6 provides more security features such as IPSec.",
+    "3. **Port Scanning**: The attacker performs a port scan to identify open ports on the target host, which can give attackers a hint to exploit the services running on those ports.",
+    "4. **Brute-forcing Directories**: The attacker attempts to brute-force directories on the domain to identify potential vulnerabilities.",
+    "5. **Zone Transfer Attack**: The attacker attempts multiple zone transfers on the nameservers to identify sensitive information about the server stack.",
+    "6. **XSS Protection Header Check**: The attacker checks if the target application has an X-XSS Protection Header enabled, which can help prevent cross-site scripting attacks.",
+    "7. **Information Leakage**: The attacker injects special characters into the URL to make the application spit sensitive information about the server stack.",
+    "8. **Data Collection**: The attacker collects publicly available information about the target, including its email address, address, and phone number, which can be used to build a profile of the target.",
+    "9. **Remediation Recommendations**: The attacker provides remediation recommendations to the target, including implementing IPv6 support, closing unused ports, filtering out special characters in the URL, and masking sensitive information."
+  ],
+  "tactic: Reconnaissance": {
+    "technique: Gather Information from Search Engines": {
+      "match": true,
+      "detail": "explanation: This technique matches the scenario description where the test is \"Scanning for emails using Google's passive search\", indicating that the attacker is gathering information from a search engine."
+    },
+    "technique: T1590 - Server Software Component Discovery": {
+      "match": true,
+      "detail": "explanation: This technique can match the part of the scenario description where it is mentioned that \"Open Ports give attackers a hint to exploit the services. Attackers try to retrieve banner information through the ports and understand what type of service the host is running\" in the vulnerability definition of the second test. This is an example of discovering server software components."
+    },
+    "technique: Open-Source Intelligence (OSINT)": {
+      "match": true,
+      "detail": "explanation: This technique can match the part of the scenario description where the attacker uses publicly available information such as the email address of the administrator and other information (address, phone, etc) to build information about the target."
+    }
+  },
+  "tactic: Defense Evasion": {
+    "technique: T1552.004 - Network Service Scanning": {
+      "match": true,
+      "detail": "explanation: This technique can be found in the scenario description, specifically in the test \"Brute-forcing Directories on the Domain\" where it is mentioned that open ports give attackers a hint to exploit the services, implying that the attacker is scanning the network for open ports and services."
+    },
+    "technique: T1140 - Deobfuscate/Decode Files or Information": {
+      "match": false,
+      "detail": "explanation: This technique does not match any part of the scenario description. The scenario describes various tests and vulnerabilities, but none of them involve deobfuscating or decoding files or information."
+    }
+  },
+  "tactic: Credential Access": {
+    "technique: OS Detection, Process Discovery, System Information Discovery": {
+      "match": true,
+      "detail": "explanation: The scenario describes scanning for emails using Google's passive search, which can be related to OS Detection and System Information Discovery. Additionally, the scenario mentions information about the server stack, which can be related to System Information Discovery and Process Discovery."
+    },
+    "technique: Brute Force": {
+      "match": true,
+      "detail": "explanation: The scenario describes \"Brute-forcing Directories on the Domain\", which involves attempting multiple combinations to gain unauthorized access, aligning with the Brute Force technique in the MITRE ATT&CK framework."
+    }
+  },
+  "tactic:": {
+    "technique:": {
+      "match": false,
+      "detail": "explanation: This technique is not mentioned in the given scenario."
+    }
+  },
+  "tactic: Social Engineering": {
+    "technique: Spear Phishing via Compromised Email Account": {
+      "match": false,
+      "detail": "explanation: This technique involves sending phishing emails from a compromised email account, which is not directly related to the scenario provided. The scenario involves scanning for emails using Google's passive search and checking for publicly available information, but there is no mention of sending phishing emails."
+    }
+  },
+  "Time": "2024_12_12_11_48_31"
+}

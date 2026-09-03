@@ -1,0 +1,4 @@
+2024-12-10 07:32:18,549 INFO     Start to process scenario file: maliciousMacroReport.txt
+2024-12-10 07:32:18,553 INFO     Step1: load threats report.
+2024-12-10 07:32:18,554 INFO     - Finished.
+2024-12-10 07:32:18,554 INFO     Step2: summarize scenario and get attack behaviors list.
