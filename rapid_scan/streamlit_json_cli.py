@@ -319,6 +319,7 @@ def perform_vulnerability_scan(url, scan_id=None):
                             "Status": test.get("status", "unknown").capitalize(),
                             "Test Status": test.get("status", "unknown").capitalize(),
                             "Finding Status": finding.get("finding_status", "Not Detected"),
+                            "Finding Type": finding.get("finding_type", "unclassified"),
                             "Time Taken": f"{test.get('duration_ms', 0)}ms" if test.get("duration_ms") is not None else "Unknown",
                             "Expected Time": "Unknown",
                             "Threat Level": severity,

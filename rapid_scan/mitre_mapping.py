@@ -5,14 +5,7 @@ not evidence of an ATT&CK technique.
 """
 
 
-MITRE_MAP = {
-    "xss": [{"id": "T1189", "name": "Drive-by Compromise",
-             "url": "https://attack.mitre.org/techniques/T1189/"}],
-    "shellshock": [{"id": "T1190", "name": "Exploit Public-Facing Application",
-                     "url": "https://attack.mitre.org/techniques/T1190/"}],
-    "lfi": [{"id": "T1190", "name": "Exploit Public-Facing Application",
-             "url": "https://attack.mitre.org/techniques/T1190/"}],
-}
+MITRE_MAP = {}
 
 
 def map_finding(finding):

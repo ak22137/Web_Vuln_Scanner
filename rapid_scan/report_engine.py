@@ -44,8 +44,10 @@ def build_canonical_result(state):
             findings.append({
                 "id": f"{test.get('test_id', 'test')}-{len(findings) + 1}",
                 "title": finding.get("title", "Unclassified scanner finding"),
+                "finding_type": finding.get("finding_type", "unclassified"),
+                "header": finding.get("header"),
                 "category": finding.get("category", "Scanner finding"),
-                "status": finding.get("finding_status", "Potential"),
+                "status": finding.get("finding_status", "Not Assessed"),
                 "verified": bool(finding.get("verified", False)),
                 "severity": finding.get("severity", "Unknown"),
                 "confidence": finding.get("confidence", "Low"),

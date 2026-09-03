@@ -1535,13 +1535,21 @@ elif args_namespace.target:
                     title = str(tool_resp[tool][0])
                     finding_type = finding_type_for_test(test_id)
                     finding_metadata = metadata_for(finding_type)
-                    verification = verify_finding(target, finding_type)
-                    finding_status = ("Confirmed" if verification.get("verified") else
-                                      "Not Detected" if verification.get("status") == "not_detected" else
-                                      "Inconclusive" if verification.get("status") == "inconclusive" else
-                                      "Potential")
-                    test_record["findings"].append({
-                        "title": title,
+                    verification_results = ([verify_finding(target, finding_type, header=header)
+                                             for header in ("content-security-policy", "x-content-type-options",
+                                                            "strict-transport-security", "x-frame-options")]
+                                            if finding_type == "missing_security_header"
+                                            else [verify_finding(target, finding_type)])
+                    for verification in verification_results:
+                        if finding_type == "missing_security_header" and verification.get("status") == "not_detected":
+                            continue
+                        finding_status = ("Confirmed" if verification.get("verified") else
+                                          "Inconclusive" if verification.get("status") == "inconclusive" else
+                                          "Potential")
+                        exact_header = (verification.get("evidence", {}).get("header_tested")
+                                        if isinstance(verification.get("evidence"), dict) else None)
+                        test_record["findings"].append({
+                        "title": f"Missing {exact_header}" if exact_header else title,
                         "category": finding_metadata["category"],
                         "finding_status": finding_status,
                         "severity": {"c": "Critical", "h": "High", "m": "Medium",
@@ -1549,13 +1557,16 @@ elif args_namespace.target:
                         "verified": verification.get("verified", False),
                         "confidence": verification.get("confidence", "Low"),
                         "finding_type": finding_type,
+                        "header": exact_header,
                         "evidence_type": "http_response" if verification.get("evidence") else "tool_output",
                         "evidence": verification.get("evidence") or {"raw_output": rs_tool_output_file[-4000:]},
                         "verification": verification
-                    })
-                    test_record["findings"][-1]["remediation"] = finding_metadata["remediation"]
-                    if "cvss" in finding_metadata:
-                        test_record["findings"][-1]["cvss"] = finding_metadata["cvss"]
+                        })
+                        test_record["findings"][-1]["remediation"] = finding_metadata["remediation"]
+                        if "cvss" in finding_metadata:
+                            test_record["findings"][-1]["cvss"] = finding_metadata["cvss"]
+                        if verification.get("cvss_vector"):
+                            test_record["findings"][-1]["cvss_vector"] = verification["cvss_vector"]
         else:
                 runTest = 1
                 spinner.stop()
