@@ -26,6 +26,12 @@ def clean_ansi_codes(log_line):
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', log_line)
 
+
+def _text_value(value):
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value or '')
+
 def _write_json_atomic(path, data):
     """Write scan state atomically so a Streamlit rerun never reads half JSON."""
     directory = os.path.dirname(path)
@@ -155,11 +161,11 @@ def write_vulnerability_info_to_file(url, scan_results, timestamp=None, raw_outp
             f.write(f"Threat Level: {result.get('Threat Level', 'Unknown')}\n")
             if result.get('Definition'):
                 # Clean ANSI codes and [0m from the definition
-                clean_definition = clean_ansi_codes(result['Definition']).replace('[0m', '')
+                clean_definition = clean_ansi_codes(_text_value(result['Definition'])).replace('[0m', '')
                 f.write(f"Vulnerability Definition: {clean_definition}\n")
             if result.get('Remediation'):
                 # Clean ANSI codes and [0m from the remediation
-                clean_remediation = clean_ansi_codes(result['Remediation']).replace('[0m', '')
+                clean_remediation = clean_ansi_codes(_text_value(result['Remediation'])).replace('[0m', '')
                 f.write(f"Vulnerability Remediation: {clean_remediation}\n")
             f.write("\n" + "-"*50 + "\n\n")
     
@@ -169,10 +175,10 @@ def write_vulnerability_info_to_file(url, scan_results, timestamp=None, raw_outp
         f.write("="*50 + "\n\n")
         f.write("The scenario is as follows:\n")
         for result in scan_results:
-            if result.get('Definition', '').strip() and result.get('Remediation', '').strip():
+            if _text_value(result.get('Definition')).strip() and _text_value(result.get('Remediation')).strip():
                 f.write(f"Test: {result.get('Test Name', 'Unknown')}\n")
-                clean_definition = clean_ansi_codes(result['Definition']).replace('[0m', '')
-                clean_remediation = clean_ansi_codes(result['Remediation']).replace('[0m', '')
+                clean_definition = clean_ansi_codes(_text_value(result['Definition'])).replace('[0m', '')
+                clean_remediation = clean_ansi_codes(_text_value(result['Remediation'])).replace('[0m', '')
                 f.write(f"Vulnerability Definition: {clean_definition}\n")
                 f.write(f"Vulnerability Remediation: {clean_remediation}\n")
                 f.write("\n" + "-"*50 + "\n\n")
@@ -384,6 +390,10 @@ def perform_vulnerability_scan(url, scan_id=None):
     state["result_file"] = results_file
     state["mitre_file"] = mitre_file
     state["raw_log_file"] = raw_file
+    if structured_payload:
+        state["rapidscan_result_file"] = os.path.join(
+            SCAN_RESULTS_DIR, f"rapidscan_result_{scan_id}.json")
+        _write_json_atomic(state["rapidscan_result_file"], structured_payload)
     state["canonical_reports"] = write_canonical_reports(state, SCAN_RESULTS_DIR)
     save_state(state["status"], state.get("error"))
     st.success(f"Scan results have been saved to: {results_file}")

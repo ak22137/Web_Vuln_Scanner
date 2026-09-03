@@ -12,6 +12,7 @@ import random
 import json
 from urllib.parse import urlsplit
 import concurrent.features
+from rapid_scan.verification import verify_finding
 
 
 CURSOR_UP_ONE = '\x1b[1A' 
@@ -1530,16 +1531,27 @@ elif args_namespace.target:
                         rs_vul_list.append(tool_names[tool][arg1]+"*"+tool_names[tool][arg2])
                 test_record["status"] = "completed"
                 if any(item.startswith(test_id + "*") for item in rs_vul_list):
+                    title = str(tool_resp[tool][0])
+                    verification = verify_finding(target, title)
+                    finding_status = "Confirmed" if verification.get("verified") else "Potential"
+                    normalized_title = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
+                    finding_type = ("cross_site_scripting" if "xss" in normalized_title or
+                                    "cross_site_scripting" in normalized_title else
+                                    "shellshock" if "shellshock" in normalized_title else
+                                    "local_file_inclusion" if "lfi" in normalized_title or
+                                    "local_file" in normalized_title else "")
                     test_record["findings"].append({
-                        "title": str(tool_resp[tool][0]),
+                        "title": title,
                         "category": "RapidScan detection",
-                        "finding_status": "Potential",
+                        "finding_status": finding_status,
                         "severity": {"c": "Critical", "h": "High", "m": "Medium",
                                       "l": "Low", "i": "Informational"}.get(tool_resp[tool][1], "Unknown"),
-                        "verified": False,
-                        "confidence": "Low",
-                        "evidence_type": "tool_output",
-                        "evidence": rs_tool_output_file[-4000:]
+                        "verified": verification.get("verified", False),
+                        "confidence": verification.get("confidence", "Low"),
+                        "finding_type": finding_type,
+                        "evidence_type": "http_response" if verification.get("evidence") else "tool_output",
+                        "evidence": verification.get("evidence") or {"raw_output": rs_tool_output_file[-4000:]},
+                        "verification": verification
                     })
         else:
                 runTest = 1

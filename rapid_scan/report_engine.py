@@ -49,7 +49,8 @@ def build_canonical_result(state):
                 "verified": bool(finding.get("verified", False)),
                 "severity": finding.get("severity", "Unknown"),
                 "confidence": finding.get("confidence", "Low"),
-                "cvss": finding.get("cvss") or {"status": "Not Assessed"},
+                "verification": finding.get("verification", {"status": "not_run"}),
+                "cvss": cvss or {"status": "Not Assessed"},
                 "evidence": finding.get("evidence", ""),
                 "mitre": map_finding(finding),
             })
@@ -87,7 +88,10 @@ def _pdf_escape(value):
 
 def _write_simple_pdf(path, lines):
     # Dependency-free, text-only PDF for environments without a PDF package.
-    visible = [line[:110] for line in lines][:48]
+    # Keep every report line; callers may provide many findings.  The
+    # dependency-free renderer is intentionally plain, but it must not drop
+    # findings from the exported artifact.
+    visible = [line[:110] for line in lines]
     stream = "BT /F1 9 Tf 40 760 Td " + " ".join(
         f"({_pdf_escape(line)}) Tj 0 -14 Td" for line in visible) + " ET"
     objects = [
@@ -120,24 +124,31 @@ def write_canonical_reports(state, output_dir):
     _atomic_text(json_path, json.dumps(result, indent=2, ensure_ascii=False))
     _atomic_text(mitre_path, json.dumps({"scan_id": scan_id, "mappings": result["mitre"]},
                                         indent=2, ensure_ascii=False))
-    rows = "".join(
-        f"<tr><td>{html.escape(test.get('name', test.get('test_id', 'Unknown')))}</td>"
-        f"<td>{html.escape(test.get('status', 'Unknown'))}</td>"
-        f"<td>{html.escape(str(test.get('findings', [{}])[0].get('finding_status', 'Not Assessed')))}</td>"
-        f"<td>{html.escape(str(test.get('findings', [{}])[0].get('evidence', ''))[:500])}</td></tr>"
-        for test in result["tests"])
+    report_rows = []
+    for test in result["tests"]:
+        test_findings = test.get("findings", []) or [{}]
+        for finding in test_findings:
+            report_rows.append(
+                f"<tr><td>{html.escape(str(test.get('name', test.get('test_id', 'Unknown'))))}</td>"
+                f"<td>{html.escape(str(test.get('status', 'Unknown')))}</td>"
+                f"<td>{html.escape(str(finding.get('title', 'No finding')))}</td>"
+                f"<td>{html.escape(str(finding.get('finding_status', 'Not Assessed')))}</td>"
+                f"<td>{html.escape(str(finding.get('evidence', ''))[:500])}</td></tr>")
+    rows = "".join(report_rows)
     html_doc = ("<!doctype html><meta charset='utf-8'><title>WebGuard report</title>"
                 "<h1>WebGuard Security Report</h1>"
                 f"<p><b>Target:</b> {html.escape(str(result['target']))}</p>"
-                f"<p><b>Scan mode:</b> {html.escape(str(result['scan']['mode']))}</p>"
-                f"<p><b>Coverage:</b> {result['coverage']}</p>"
+                f"<p><b>Execution mode:</b> {html.escape(str(result['scan']['mode']))}</p>"
+                f"<p><b>Completion:</b> {html.escape(str(result['scan']['completion']))}</p>"
+                f"<p><b>Coverage:</b> {html.escape(json.dumps(result['coverage']))}</p>"
                 "<table border='1' cellpadding='6'><tr><th>Test</th><th>Status</th>"
-                f"<th>Finding status</th><th>Evidence</th></tr>{rows}</table>"
+                f"<th>Finding</th><th>Finding status</th><th>Evidence</th></tr>{rows}</table>"
                 "<h2>Findings</h2>"
                 f"<pre>{html.escape(json.dumps(result['findings'], indent=2))}</pre>")
     _atomic_text(html_path, html_doc)
     pdf_lines = ["WebGuard Security Report", f"Target: {result['target']}",
-                 f"Scan mode: {result['scan']['mode']}",
+                 f"Execution mode: {result['scan']['mode']}",
+                 f"Completion: {result['scan']['completion']}",
                  f"Coverage: {result['coverage']}"]
     pdf_lines.extend(f"{t.get('name', t.get('test_id'))}: {t.get('status')}"
                      for t in result["tests"])

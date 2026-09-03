@@ -5,11 +5,21 @@ not evidence of an ATT&CK technique.
 """
 
 
+MITRE_MAP = {
+    "cross_site_scripting": ["T1189"],
+    "shellshock": ["T1190"],
+    "local_file_inclusion": ["T1190"],
+}
+
+
 def map_finding(finding):
     if not isinstance(finding, dict):
         return []
     explicit = finding.get("mitre_candidates")
     evidence_type = finding.get("evidence_type")
-    if explicit and evidence_type:
+    if finding.get("finding_status") != "Confirmed" or not evidence_type:
+        return []
+    if explicit:
         return explicit
-    return []
+    finding_type = str(finding.get("finding_type", "")).lower()
+    return MITRE_MAP.get(finding_type, [])
