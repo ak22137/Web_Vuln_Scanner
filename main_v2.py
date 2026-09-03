@@ -46,7 +46,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'proxycheck'))
 from rapid_scan.streamlit_json_cli import (perform_vulnerability_scan, load_latest_scan_state,
                                             create_scan_state, update_scan_stage, load_scan_history)
 # from injectx_streamlit_run import run_injectx_scan
-from threats2MitreRun import processThreatsScenario
 from proxycheck import get_ip_details
 from config import fuzz
 
@@ -881,12 +880,17 @@ if latest_scan and not submit_button:
         st.caption(f"Current stage: {latest_scan['stage']}")
     if latest_scan.get("scan_mode"):
         st.caption(f"Scan mode: {latest_scan['scan_mode']}")
+    if latest_scan.get("scan_completion"):
+        st.caption(f"Coverage status: {latest_scan['scan_completion']}")
     if latest_scan.get("results"):
         st.dataframe(pd.DataFrame(latest_scan["results"]), use_container_width=True, hide_index=True)
     if latest_scan.get("raw_log_file") and os.path.exists(latest_scan["raw_log_file"]):
         with st.expander("Scanner log"):
             with open(latest_scan["raw_log_file"], encoding="utf-8", errors="replace") as log_file:
                 st.code(log_file.read()[-12000:])
+    elif latest_scan.get("live_log_tail"):
+        with st.expander("Live scanner log"):
+            st.code(latest_scan["live_log_tail"])
 
 history = load_scan_history()
 if history:
@@ -895,7 +899,8 @@ if history:
         st.dataframe(pd.DataFrame([
             {"URL": item.get("url"), "Status": item.get("status"),
              "Stage": item.get("stage"), "Started": item.get("started_at"),
-             "Threat": item.get("highest_threat_level") or "-"}
+             "Threat": item.get("highest_threat_level") or "-",
+             "Completion": item.get("scan_completion") or "UNKNOWN"}
             for item in history
         ]), use_container_width=True, hide_index=True)
 
@@ -1299,7 +1304,7 @@ if submit_button and input_url.strip():
             file_path = os.path.join(scenario_folder, filename)
 
         # Delete folder contents after processing
-        processThreatsScenario(file_path)
+        st.info("MITRE mapping is generated from structured scanner findings.")
         def delete_folder_contents(folder_path):
             try:
                 shutil.rmtree(folder_path)
@@ -1308,7 +1313,7 @@ if submit_button and input_url.strip():
                 print(f"Error cleaning folder: {e}")
 
         # Clean up after processing
-        report_file_1 = ""
+        report_file_1 = (load_latest_scan_state() or {}).get("canonical_reports", {}).get("mitre", "")
         for file_name in os.listdir(report_folder):
             if re.search(r'Atk', file_name, re.IGNORECASE) and file_name.endswith(".json"):
                 report_file_1 = os.path.join(report_folder, file_name)

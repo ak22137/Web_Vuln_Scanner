@@ -9,9 +9,8 @@ import json
 import tempfile
 import shutil
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
+from rapid_scan.report_engine import write_canonical_reports
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 SCAN_RESULTS_DIR = os.path.join(PROJECT_ROOT, 'scan_results')
@@ -54,7 +53,7 @@ def _persist_scan_state(state):
             history = []
     record = {key: state.get(key) for key in
               ('scan_id', 'url', 'status', 'stage', 'started_at', 'updated_at',
-               'highest_threat_level', 'scan_mode', 'mode_reason', 'error')}
+               'highest_threat_level', 'scan_mode', 'mode_reason', 'scan_completion', 'error')}
     record['result_file'] = os.path.basename(state['result_file']) if state.get('result_file') else None
     record['raw_log_file'] = os.path.basename(state['raw_log_file']) if state.get('raw_log_file') else None
     history = [item for item in history if item.get('scan_id') != record['scan_id']]
@@ -152,6 +151,7 @@ def write_vulnerability_info_to_file(url, scan_results, timestamp=None, raw_outp
         for result in scan_results:
             f.write(f"Test: {result.get('Test Name', 'Unknown')}\n")
             f.write(f"Status: {result.get('Status', 'Unknown')}\n")
+            f.write(f"Finding Status: {result.get('Finding Status', 'Not Assessed')}\n")
             f.write(f"Threat Level: {result.get('Threat Level', 'Unknown')}\n")
             if result.get('Definition'):
                 # Clean ANSI codes and [0m from the definition
@@ -217,73 +217,27 @@ def run_scan_real_time(url, output_queue):
         output_queue.put({"type": "ERROR", "message": docker_error, "return_code": -1})
         return
 
-    command = ["docker", "run", "--rm", "rapidscan", url]
+    output_directory = tempfile.mkdtemp(prefix="webguard-rapidscan-")
+    structured_path = os.path.join(output_directory, "result.json")
+    command = ["docker", "run", "--rm", "-v", f"{output_directory}:/output",
+               "rapidscan", url, "--nospinner", "--json-output", "/output/result.json"]
     try:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                    text=True, bufsize=1)
         for line in process.stdout:
             output_queue.put(line.rstrip('\r\n'))
         return_code = process.wait()
+        if os.path.exists(structured_path):
+            try:
+                with open(structured_path, encoding="utf-8") as result_file:
+                    output_queue.put({"type": "STRUCTURED_RESULT", "data": json.load(result_file)})
+            except (OSError, ValueError) as exc:
+                output_queue.put({"type": "ERROR", "message": f"Invalid RapidScan JSON output: {exc}", "return_code": -1})
         output_queue.put({"type": "DONE", "return_code": return_code})
     except Exception as exc:
         output_queue.put({"type": "ERROR", "message": str(exc), "return_code": -1})
-
-# Function to parse scan results from each line
-def parse_scan_line(line, next_line=None, scan_results=None):
-    # Check for vulnerability threat level first
-    if "Vulnerability Threat Level" in line and next_line:
-        print(f"Found threat level line: {line}")
-        print(f"Next line: {next_line}")
-        threat_match = re.search(r'(low|medium|high|critical)', next_line.lower())
-        if threat_match:
-            threat_level = threat_match.group(1).capitalize()
-            print(f"Found threat level: {threat_level}")
-            return {
-                "type": "threat_level_update",
-                "Threat Level": threat_level,
-                "Test Name": scan_results[-1]["Test Name"] if scan_results else "Unknown"
-            }
-
-    # Check for vulnerability definition
-    if "Vulnerability Definition" in line and next_line:
-        if scan_results and scan_results[-1]:
-            scan_results[-1]["Definition"] = next_line.strip()
-        return None
-
-    # Check for vulnerability remediation
-    if "Vulnerability Remediation" in line and next_line:
-        if scan_results and scan_results[-1]:
-            scan_results[-1]["Remediation"] = next_line.strip()
-        return None
-
-    # Check if line contains deployment information
-    if "Deploying" in line and "|" in line:
-        parts = line.split("|")
-        if len(parts) >= 2:
-            test_info = clean_ansi_codes(parts[1].strip())
-            time_match = re.search(r'<\s*(\d+[ms])', parts[0])
-            expected_time = time_match.group(1) if time_match else "Unknown"
-            
-            return {
-                "type": "new_test",
-                "data": {
-                    "Test Name": test_info,
-                    "Status": "Running",
-                    "Time Taken": "In progress",
-                    "Expected Time": expected_time,
-                    "Threat Level": "",
-                    "Definition": "",
-                    "Remediation": ""
-                }
-            }
-    
-    # Check if scan completion is reported
-    if "Scan Completed in" in line:
-        time_taken = re.search(r'Completed in (\d+[ms])', line)
-        if time_taken:
-            return {"type": "completion", "time_taken": time_taken.group(1)}
-    
-    return None
+    finally:
+        shutil.rmtree(output_directory, ignore_errors=True)
 
 def perform_vulnerability_scan(url, scan_id=None):
     """
@@ -305,52 +259,86 @@ def perform_vulnerability_scan(url, scan_id=None):
     state["stage"] = "Vulnerability scan"
     _persist_scan_state(state)
     raw_lines = []
+    structured_payload = None
     _persist_scan_state(state)
     table_placeholder = st.empty()
 
     def save_state(status=None, error=None):
         state["status"] = status or state["status"]
         state["updated_at"] = datetime.now(timezone.utc).isoformat()
-        state["highest_threat_level"] = highest_threat_level or "Safe"
+        state["highest_threat_level"] = highest_threat_level or "Not Assessed"
         state["results"] = scan_results
-        state["tests"] = [{
+        state["tests"] = structured_payload.get("tests", []) if structured_payload else [{
             "test_id": re.sub(r"[^a-z0-9]+", "_", item.get("Test Name", "unknown").lower()).strip("_"),
             "name": item.get("Test Name", "Unknown"),
             "status": item.get("Status", "Unknown"),
             "duration": item.get("Time Taken"),
-            "finding_status": "Potential" if item.get("Threat Level") not in {"Safe", "Unknown", ""}
-                              else "Not Detected"
+            "finding_status": "Not Assessed"
         } for item in scan_results]
+        if structured_payload:
+            statuses = {str(test.get("status", "")).lower() for test in state["tests"]}
+            state["scan_completion"] = (
+                "PARTIAL" if statuses.intersection({"failed", "skipped"}) else "COMPLETE"
+            )
+        elif status == "Completed":
+            state["scan_completion"] = "PARTIAL"
+        else:
+            state["scan_completion"] = "FAILED"
         state["error"] = error
         _persist_scan_state(state)
 
     def update_logs():
-        previous_line = None
-        last_test_index = -1
-        nonlocal highest_threat_level
+        nonlocal highest_threat_level, structured_payload
         threat_levels = {"safe": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
         valid_threat_levels = ["Low", "Medium", "High", "Critical"]
         
         while True:
             item = output_queue.get()
+            if isinstance(item, dict) and item.get("type") == "STRUCTURED_RESULT":
+                structured_payload = item.get("data")
+                continue
             if isinstance(item, dict) and item.get("type") in {"DONE", "ERROR"}:
                 process_succeeded = item.get("type") == "DONE" and item.get("return_code") == 0
-                # Set remaining tests to "Safe"
+                if structured_payload and not scan_results:
+                    severity_rank = {"Informational": 0, "Low": 1, "Medium": 2,
+                                     "High": 3, "Critical": 4}
+                    for test in structured_payload.get("tests", []):
+                        findings = test.get("findings", [])
+                        finding = findings[0] if findings else {}
+                        severity = finding.get("severity", "Unknown")
+                        scan_results.append({
+                            "Test Name": test.get("name", test.get("test_id", "Unknown")),
+                            "Status": test.get("status", "unknown").capitalize(),
+                            "Test Status": test.get("status", "unknown").capitalize(),
+                            "Finding Status": finding.get("finding_status", "Not Detected"),
+                            "Time Taken": f"{test.get('duration_ms', 0)}ms" if test.get("duration_ms") is not None else "Unknown",
+                            "Expected Time": "Unknown",
+                            "Threat Level": severity,
+                            "Definition": finding.get("evidence", ""),
+                            "Remediation": "Review and remediate the reported condition; verify manually.",
+                            "Evidence": finding.get("evidence", ""),
+                            "Verified": finding.get("verified", False)
+                        })
+                        if severity_rank.get(severity, 0) > severity_rank.get(highest_threat_level, 0):
+                            highest_threat_level = severity
+                # Tests without a finding are not equivalent to a verified safe result.
                 for test in scan_results:
                     if not test["Threat Level"]:
-                        test["Threat Level"] = "Safe"
+                        test["Threat Level"] = "Unknown"
                     if test.get("Status") == "Running":
                         test["Status"] = "Completed" if process_succeeded else "Failed"
                         test["Test Status"] = test["Status"]
                         test["Time Taken"] = "Unknown"
                         test["Finding Status"] = "Not Detected" if process_succeeded else "Not Assessed"
                 if not highest_threat_level or highest_threat_level not in valid_threat_levels:
-                    highest_threat_level = "Safe"
+                    highest_threat_level = "Not Assessed"
                 
                 df = pd.DataFrame(scan_results)
                 df = df.sort_index()
                 table_placeholder.table(df)
                 if item.get("type") == "ERROR":
+                    state["scan_mode"] = "FAILED"
+                    state["mode_reason"] = "RapidScan Docker execution failed"
                     raw_lines.append("ERROR: " + item["message"])
                     scan_results.append({"Test Name": "Scanner error", "Status": "Failed",
                                          "Time Taken": "N/A", "Expected Time": "N/A",
@@ -371,38 +359,12 @@ def perform_vulnerability_scan(url, scan_id=None):
                 break
 
             raw_lines.append(item)
-            result = parse_scan_line(previous_line, item, scan_results) if previous_line else None
-            previous_line = item
-
-            if result:
-                if result.get("type") == "new_test":
-                    current_test = result["data"]
-                    current_test["Threat Level"] = "Safe"
-                    scan_results.append(current_test)
-                    last_test_index = len(scan_results) - 1
-                    
-                elif result.get("type") == "completion" and last_test_index >= 0:
-                    scan_results[last_test_index]["Status"] = "Completed"
-                    scan_results[last_test_index]["Time Taken"] = result["time_taken"]
-                    if not scan_results[last_test_index]["Threat Level"]:
-                        scan_results[last_test_index]["Threat Level"] = "Safe"
-                    
-                elif result.get("type") == "threat_level_update":
-                    for test in scan_results:
-                        if test["Test Name"] == result["Test Name"]:
-                            new_threat = result["Threat Level"]
-                            if new_threat in valid_threat_levels:
-                                test["Threat Level"] = new_threat
-                                current_level = threat_levels.get(new_threat.lower(), 0)
-                                highest_level = threat_levels.get(highest_threat_level.lower(), 0)
-                                if current_level > highest_level:
-                                    highest_threat_level = new_threat
-                            break
-            
-                df = pd.DataFrame(scan_results)
-                df = df.sort_index()
-                table_placeholder.table(df)
-                save_state()
+            # Terminal lines are diagnostics only. Results arrive via the
+            # structured JSON payload handled above and are never regex-parsed.
+            state["live_log_tail"] = "\n".join(raw_lines)[-12000:]
+            state["updated_at"] = datetime.now(timezone.utc).isoformat()
+            _persist_scan_state(state)
+            continue
 
         return highest_threat_level
 
@@ -414,7 +376,7 @@ def perform_vulnerability_scan(url, scan_id=None):
     highest_threat_level = update_logs()
     
     if highest_threat_level == "":
-        highest_threat_level = "Safe"
+        highest_threat_level = "Not Assessed"
 
     # Save results to file
     results_file, mitre_file, raw_file = write_vulnerability_info_to_file(
@@ -422,6 +384,7 @@ def perform_vulnerability_scan(url, scan_id=None):
     state["result_file"] = results_file
     state["mitre_file"] = mitre_file
     state["raw_log_file"] = raw_file
+    state["canonical_reports"] = write_canonical_reports(state, SCAN_RESULTS_DIR)
     save_state(state["status"], state.get("error"))
     st.success(f"Scan results have been saved to: {results_file}")
 
