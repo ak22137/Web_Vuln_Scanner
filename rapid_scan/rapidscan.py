@@ -12,7 +12,8 @@ import random
 import json
 from urllib.parse import urlsplit
 import concurrent.features
-from rapid_scan.verification import verify_finding
+from rapid_scan.verification import finding_type_for_test, verify_finding
+from rapid_scan.finding_catalog import metadata_for
 
 
 CURSOR_UP_ONE = '\x1b[1A' 
@@ -1532,17 +1533,16 @@ elif args_namespace.target:
                 test_record["status"] = "completed"
                 if any(item.startswith(test_id + "*") for item in rs_vul_list):
                     title = str(tool_resp[tool][0])
-                    verification = verify_finding(target, title)
-                    finding_status = "Confirmed" if verification.get("verified") else "Potential"
-                    normalized_title = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")
-                    finding_type = ("cross_site_scripting" if "xss" in normalized_title or
-                                    "cross_site_scripting" in normalized_title else
-                                    "shellshock" if "shellshock" in normalized_title else
-                                    "local_file_inclusion" if "lfi" in normalized_title or
-                                    "local_file" in normalized_title else "")
+                    finding_type = finding_type_for_test(test_id)
+                    finding_metadata = metadata_for(finding_type)
+                    verification = verify_finding(target, finding_type)
+                    finding_status = ("Confirmed" if verification.get("verified") else
+                                      "Not Detected" if verification.get("status") == "not_detected" else
+                                      "Inconclusive" if verification.get("status") == "inconclusive" else
+                                      "Potential")
                     test_record["findings"].append({
                         "title": title,
-                        "category": "RapidScan detection",
+                        "category": finding_metadata["category"],
                         "finding_status": finding_status,
                         "severity": {"c": "Critical", "h": "High", "m": "Medium",
                                       "l": "Low", "i": "Informational"}.get(tool_resp[tool][1], "Unknown"),
@@ -1553,6 +1553,9 @@ elif args_namespace.target:
                         "evidence": verification.get("evidence") or {"raw_output": rs_tool_output_file[-4000:]},
                         "verification": verification
                     })
+                    test_record["findings"][-1]["remediation"] = finding_metadata["remediation"]
+                    if "cvss" in finding_metadata:
+                        test_record["findings"][-1]["cvss"] = finding_metadata["cvss"]
         else:
                 runTest = 1
                 spinner.stop()

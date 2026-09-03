@@ -62,6 +62,8 @@ def _persist_scan_state(state):
                'highest_threat_level', 'scan_mode', 'mode_reason', 'scan_completion', 'error')}
     record['result_file'] = os.path.basename(state['result_file']) if state.get('result_file') else None
     record['raw_log_file'] = os.path.basename(state['raw_log_file']) if state.get('raw_log_file') else None
+    record['rapidscan_result_file'] = (os.path.basename(state['rapidscan_result_file'])
+                                      if state.get('rapidscan_result_file') else None)
     history = [item for item in history if item.get('scan_id') != record['scan_id']]
     history.append(record)
     history.sort(key=lambda item: item.get('updated_at') or '', reverse=True)
@@ -321,7 +323,7 @@ def perform_vulnerability_scan(url, scan_id=None):
                             "Expected Time": "Unknown",
                             "Threat Level": severity,
                             "Definition": finding.get("evidence", ""),
-                            "Remediation": "Review and remediate the reported condition; verify manually.",
+                            "Remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
                             "Evidence": finding.get("evidence", ""),
                             "Verified": finding.get("verified", False)
                         })

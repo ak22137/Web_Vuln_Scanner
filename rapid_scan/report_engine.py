@@ -52,6 +52,7 @@ def build_canonical_result(state):
                 "verification": finding.get("verification", {"status": "not_run"}),
                 "cvss": cvss or {"status": "Not Assessed"},
                 "evidence": finding.get("evidence", ""),
+                "remediation": finding.get("remediation", "Review and remediate the reported condition; verify manually."),
                 "mitre": map_finding(finding),
             })
     return {
@@ -70,9 +71,9 @@ def build_canonical_result(state):
                      "failed": failed, "skipped": skipped},
         "tests": tests,
         "findings": findings,
-        "risk_summary": {"confirmed": sum(f["status"] == "Confirmed" for f in findings),
-                         "potential": sum(f["status"] == "Potential" for f in findings),
-                         "not_detected": sum(f["status"] == "Not Detected" for f in findings)},
+        "risk_summary": {status.lower().replace(" ", "_"): sum(f["status"] == status for f in findings)
+                         for status in ("Confirmed", "Potential", "Inconclusive",
+                                        "Not Detected", "Not Assessed")},
         "mitre": [{"finding_id": f["id"], "mappings": f["mitre"] or ["No direct mapping"]}
                   for f in findings],
         "limitations": (["RapidScan Docker backend unavailable"]
