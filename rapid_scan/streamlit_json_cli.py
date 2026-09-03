@@ -201,6 +201,14 @@ def write_vulnerability_info_to_file(url, scan_results, timestamp=None, raw_outp
 
     return filename, mitre_filename, raw_filename
 
+
+def write_raw_log(scan_id, raw_output):
+    """Persist diagnostics separately; user-facing reports use canonical data only."""
+    path = os.path.join(SCAN_RESULTS_DIR, f"rapidscan_raw_{scan_id}.log")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(raw_output)
+    return path
+
 # Function to run the scanner in a separate thread
 def run_scan_real_time(url, output_queue):
     """Run the full Docker RapidScan backend; never substitute a partial scan."""
@@ -400,12 +408,8 @@ def perform_vulnerability_scan(url, scan_id=None):
     if highest_threat_level == "":
         highest_threat_level = "Not Assessed"
 
-    # Save results to file
-    results_file, mitre_file, raw_file = write_vulnerability_info_to_file(
-        url, scan_results, timestamp=scan_id, raw_output='\n'.join(raw_lines))
-    state["result_file"] = results_file
-    state["mitre_file"] = mitre_file
-    state["raw_log_file"] = raw_file
+    # Diagnostics are separate from canonical user-facing reports.
+    state["raw_log_file"] = write_raw_log(scan_id, '\n'.join(raw_lines))
     if structured_payload:
         state["rapidscan_result_file"] = os.path.join(
             SCAN_RESULTS_DIR, f"rapidscan_result_{scan_id}.json")

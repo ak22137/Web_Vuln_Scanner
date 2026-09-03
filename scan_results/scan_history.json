@@ -1,5 +1,21 @@
 [
   {
+    "scan_id": "20260903T220119639072Z",
+    "url": "https://ghosttourlabs.com",
+    "status": "Completed",
+    "stage": "Report generated",
+    "started_at": "2026-09-03T22:01:19.639056+00:00",
+    "updated_at": "2026-09-03T22:02:07.077767+00:00",
+    "highest_threat_level": "Not Assessed",
+    "scan_mode": "FAILED",
+    "mode_reason": "RapidScan Docker execution failed",
+    "scan_completion": "FAILED",
+    "error": "Error response from daemon: No such image: rapidscan:latest",
+    "result_file": "security_report_20260903T220119639072Z.txt",
+    "raw_log_file": "rapidscan_raw_20260903T220119639072Z.log",
+    "rapidscan_result_file": null
+  },
+  {
     "scan_id": "20260903T203003769753Z",
     "url": "https://ghostoverlay-ai.com",
     "status": "Completed",

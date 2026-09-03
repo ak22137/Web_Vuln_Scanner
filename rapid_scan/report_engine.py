@@ -98,6 +98,7 @@ def build_canonical_result(state):
                 "header": finding.get("header"),
                 "category": finding.get("category", "Scanner finding"),
                 "status": finding.get("finding_status", "Not Assessed"),
+                "status_reason": finding.get("status_reason", "No status rationale was supplied."),
                 "verified": bool(finding.get("verified", False)),
                 "severity": finding.get("severity", "Unknown"),
                 "confidence": finding.get("confidence", "Low"),
@@ -109,6 +110,11 @@ def build_canonical_result(state):
                 "references": finding.get("references", []),
                 "mitre": map_finding(finding),
             })
+    severity_rank = {"Informational": 0, "Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+    confirmed_severities = [finding["severity"] for finding in findings
+                            if finding["status"] == "Confirmed" and finding["severity"] in severity_rank]
+    overall_risk = (max(confirmed_severities, key=lambda value: severity_rank[value])
+                    if confirmed_severities else "No Confirmed Findings")
     return {
         "schema_version": "1.0",
         "target": state.get("url"),
@@ -129,6 +135,8 @@ def build_canonical_result(state):
         "risk_summary": {status.lower().replace(" ", "_"): sum(f["status"] == status for f in findings)
                          for status in ("Confirmed", "Potential", "Inconclusive",
                                         "Not Detected", "Not Assessed")},
+        "executive_risk_summary": {"overall_risk": overall_risk,
+                                    "basis": "Confirmed findings only"},
         "mitre": [{"finding_id": f["id"], "mappings": f["mitre"] or ["No direct mapping"]}
                   for f in findings],
         "limitations": (["RapidScan Docker backend unavailable"]
@@ -191,6 +199,8 @@ def write_canonical_reports(state, output_dir):
                   f"Execution Mode: {result['scan']['mode']}",
                   f"Completion: {result['scan']['completion']}",
                   f"Coverage: {json.dumps(result['coverage'])}", ""]
+    text_lines.extend([f"Overall Risk: {result['executive_risk_summary']['overall_risk']}",
+                       f"Risk Basis: {result['executive_risk_summary']['basis']}", ""])
     for finding in result["findings"]:
         text_lines.extend([f"Finding Type: {finding['finding_type']}",
                            f"Title: {finding['title']}",
@@ -219,6 +229,8 @@ def write_canonical_reports(state, output_dir):
                 f"<p><b>Execution mode:</b> {html.escape(str(result['scan']['mode']))}</p>"
                 f"<p><b>Completion:</b> {html.escape(str(result['scan']['completion']))}</p>"
                 f"<p><b>Coverage:</b> {html.escape(json.dumps(result['coverage']))}</p>"
+                f"<p><b>Overall risk:</b> {html.escape(result['executive_risk_summary']['overall_risk'])} "
+                f"({html.escape(result['executive_risk_summary']['basis'])})</p>"
                 "<table border='1' cellpadding='6'><tr><th>Test</th><th>Status</th>"
                 f"<th>Finding</th><th>Finding status</th><th>Evidence</th><th>Assessment</th></tr>{rows}</table>"
                 "<h2>Findings</h2>"
@@ -227,11 +239,17 @@ def write_canonical_reports(state, output_dir):
     pdf_lines = ["WebGuard Security Report", f"Target: {result['target']}",
                  f"Execution mode: {result['scan']['mode']}",
                  f"Completion: {result['scan']['completion']}",
-                 f"Coverage: {result['coverage']}"]
+                 f"Coverage: {result['coverage']}",
+                 f"Overall Risk: {result['executive_risk_summary']['overall_risk']}"]
     pdf_lines.extend(f"{t.get('name', t.get('test_id'))}: {t.get('status')}"
                      for t in result["tests"])
-    pdf_lines.extend(f"Finding: {finding['title']} [{finding['status']}]"
-                     for finding in result["findings"])
+    for finding in result["findings"]:
+        pdf_lines.extend(["", f"Finding: {finding['title']} [{finding['status']}]",
+                          f"Type: {finding['finding_type']}", f"Severity: {finding['severity']}",
+                          f"Confidence: {finding['confidence']}", f"CVSS: {json.dumps(finding['cvss'])}",
+                          f"Remediation: {finding['remediation']}",
+                          f"References: {json.dumps(finding['references'])}",
+                          f"Evidence: {json.dumps(finding['evidence'], ensure_ascii=False)}"])
     _write_simple_pdf(pdf_path, pdf_lines)
     return {"json": json_path, "html": html_path, "pdf": pdf_path,
             "txt": txt_path, "mitre": mitre_path}

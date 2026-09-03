@@ -9,6 +9,8 @@ import random
 import threading
 import re
 import json
+import shlex
+import tempfile
 from urllib.parse import urlsplit
 import concurrent.features
 from rapid_scan.verification import finding_type_for_test, verify_finding
@@ -20,15 +22,17 @@ ERASE_LINE = '\x1b[2K'
 TOOL_TIMEOUT_SECONDS = 300
 
 
-def _error(kind, message):
-    return {"kind": kind, "message": str(message)}
+def _error(kind, message, tool=None, exit_code=None, duration_ms=None):
+    return {"kind": kind, "message": str(message), "tool": tool,
+            "exit_code": exit_code, "duration_ms": duration_ms}
 
 
 def _evidence(target, test_id, output):
     """Common evidence schema, even for legacy-tool adapter observations."""
     return {"url": f"http://{target}", "method": None, "parameter": None,
-            "status_code": None, "request": None, "response": {"body_excerpt": output[-4000:]},
-            "payload": None, "source": "rapidscan_tool_adapter", "test_id": test_id}
+            "status_code": None, "request": None, "response": None,
+            "payload": None, "source": "rapidscan_tool_adapter",
+            "tool_output": {"excerpt": output[-4000:]}, "test_id": test_id}
 
 # Scan Time Elapser
 intervals = (
@@ -1453,9 +1457,9 @@ elif args_namespace.target:
     while (rs_avail_tools < len(tools_precheck)):
         precmd = str(tools_precheck[rs_avail_tools][arg1])
         try:
-            p = subprocess.Popen([precmd], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,shell=True)
-            output, err = p.communicate()
-            val = output + err
+            precheck = subprocess.run([precmd], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, check=False)
+            val = precheck.stdout + precheck.stderr
         except OSError as error:
             print("\t"+bcolors.BG_ERR_TXT+f"RapidScan precheck failed: {error}"+bcolors.ENDC)
             print("\t"+bcolors.BG_ERR_TXT+"RapidScan was terminated abruptly..."+bcolors.ENDC)
@@ -1500,6 +1504,9 @@ elif args_namespace.target:
             test_record["errors"].append(_error("tool_unavailable", "Required scanner tool unavailable or skipped."))
             test_record["completed_at"] = time.time()
             test_record["duration_ms"] = int((test_record["completed_at"] - test_record["started_at"]) * 1000)
+            for error in test_record["errors"]:
+                error["tool"] = test_id
+                error["duration_ms"] = test_record["duration_ms"]
             print(bcolors.WARNING+"\nScanning Tool Unavailable. Skipping Test...\n"+bcolors.ENDC)
             rs_skipped_checks = rs_skipped_checks + 1
             tool = tool + 1
@@ -1509,24 +1516,30 @@ elif args_namespace.target:
         except Exception as e:
             print("\n")
         scan_start = time.time()
-        temp_file = "/tmp/rapidscan_temp_"+tool_names[tool][arg1]
-        cmd = tool_cmd[tool][arg1]+target+tool_cmd[tool][arg2]+" > "+temp_file+" 2>&1"
+        temp_handle = tempfile.NamedTemporaryFile(prefix=f"rapidscan_{test_id}_", suffix=".log",
+                                                  dir="/tmp", delete=False)
+        temp_file = temp_handle.name
+        command_args = shlex.split(tool_cmd[tool][arg1] + target + tool_cmd[tool][arg2])
 
         try:
-            execution = subprocess.run(cmd, shell=True, timeout=TOOL_TIMEOUT_SECONDS)
+            execution = subprocess.run(command_args, stdout=temp_handle, stderr=subprocess.STDOUT,
+                                       timeout=TOOL_TIMEOUT_SECONDS, check=False)
             runTest = execution.returncode == 0
             if not runTest:
                 test_record["errors"].append(_error("tool_execution_failure",
-                                                     f"Tool exited with code {execution.returncode}."))
+                                                     f"Tool exited with code {execution.returncode}.",
+                                                     test_id, execution.returncode))
         except subprocess.TimeoutExpired:
             runTest = 0
-            test_record["errors"].append(_error("timeout", f"Tool exceeded {TOOL_TIMEOUT_SECONDS}s."))
+            test_record["errors"].append(_error("timeout", f"Tool exceeded {TOOL_TIMEOUT_SECONDS}s.", test_id))
         except KeyboardInterrupt:
             runTest = 0
-            test_record["errors"].append(_error("user_interruption", "Scan interrupted by user."))
+            test_record["errors"].append(_error("user_interruption", "Scan interrupted by user.", test_id))
         except OSError as error:
             runTest = 0
-            test_record["errors"].append(_error("tool_execution_failure", error))
+            test_record["errors"].append(_error("tool_execution_failure", error, test_id))
+        finally:
+            temp_handle.close()
 
         if runTest == 1:
                 spinner.stop()
@@ -1575,6 +1588,10 @@ elif args_namespace.target:
                         "title": f"Missing {exact_header}" if exact_header else title,
                         "category": finding_metadata["category"],
                         "finding_status": finding_status,
+                        "status_reason": (verification.get("reason") or
+                                          ("The exact security control was absent in the verified response."
+                                           if finding_status == "Confirmed" else
+                                           "Detector signal requires further verification.")),
                         "severity": {"c": "Critical", "h": "High", "m": "Medium",
                                       "l": "Low", "i": "Informational"}.get(tool_resp[tool][1], "Unknown"),
                         "verified": verification.get("verified", False),
@@ -1605,10 +1622,17 @@ elif args_namespace.target:
                 rs_skipped_checks = rs_skipped_checks + 1
                 test_record["status"] = "failed"
                 if not test_record["errors"]:
-                    test_record["errors"].append(_error("invalid_scanner_output", "Tool did not produce a usable result."))
+                    test_record["errors"].append(_error("invalid_scanner_output", "Tool did not produce a usable result.", test_id))
 
         test_record["completed_at"] = time.time()
         test_record["duration_ms"] = int((test_record["completed_at"] - test_record["started_at"]) * 1000)
+        for error in test_record["errors"]:
+            error["tool"] = error.get("tool") or test_id
+            error["duration_ms"] = test_record["duration_ms"]
+        try:
+            os.unlink(temp_file)
+        except OSError:
+            pass
         tool=tool+1
 
     print(bcolors.BG_ENDL_TXT+"[ Preliminary Scan Phase Completed. ]"+bcolors.ENDC)
